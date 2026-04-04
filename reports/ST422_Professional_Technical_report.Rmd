@@ -3,7 +3,7 @@ title: "Professional Technical Report: Central England Seasonal Temperature Chan
 author: "Team 3: Yueran Wang 2201370"
 date: "2026-04-01"
 output:
-  pdf_document:
+  bookdown::pdf_document2:
     toc: true
     toc_depth: 3
     number_sections: true
@@ -14,13 +14,14 @@ header-includes:
   - \usepackage{placeins}
   - \usepackage{etoolbox}
   - \makeatletter
+
   - \pretocmd{\tableofcontents}{\newpage}{}{}
+
   - \makeatother
 ---
 
 ```{r setup, include=FALSE}
 knitr::opts_knit$set(root.dir = normalizePath(".."))
-
 # Global cache directory for fast re-knit.
 # All cached objects are stored under:
 #   F:/Warwick_Module/ST422/ST422_personal_portfolio/cache
@@ -28,7 +29,6 @@ cache_root <- normalizePath(file.path("cache"), winslash = "/", mustWork = FALSE
 dir.create(cache_root, recursive = TRUE, showWarnings = FALSE)
 dir.create(file.path(cache_root, "knitr"), recursive = TRUE, showWarnings = FALSE)
 dir.create(file.path(cache_root, "figures"), recursive = TRUE, showWarnings = FALSE)
-
 # Invalidate cache automatically when any R source file under src/ changes.
 src_files <- list.files("src", pattern = "\\.R$", full.names = TRUE, recursive = TRUE)
 src_stamp <- if (length(src_files) == 0) {
@@ -36,7 +36,6 @@ src_stamp <- if (length(src_files) == 0) {
 } else {
   paste(file.info(src_files)$mtime, collapse = "|")
 }
-
 # Invalidate cache when cleaned input data changes.
 data_files <- list.files("processed", pattern = "\\.csv$", full.names = TRUE)
 data_stamp <- if (length(data_files) == 0) {
@@ -44,10 +43,8 @@ data_stamp <- if (length(data_files) == 0) {
 } else {
   paste(file.info(data_files)$mtime, collapse = "|")
 }
-
 # Manual switch to force refresh all cached chunks when needed.
-force_recompute <- FALSE
-
+force_recompute <- TRUE
 knitr::opts_chunk$set(
   echo = FALSE,
   message = FALSE,
@@ -63,14 +60,14 @@ knitr::opts_chunk$set(
   cache.comments = FALSE,
   cache.extra = list(src_stamp, data_stamp, force_recompute, R.version.string)
 )
+
 ```
 
 ```{r eda-sources, include=FALSE, cache=FALSE}
 source(file.path("src", "utils", "eda_utils.R"))
 source(file.path("src", "plots", "eda", "plot_eda_annotated_series.R"))
 source(file.path("src", "plots", "eda", "plot_eda_warming_rate_curve.R"))
-source(file.path("src", "plots", "eda", "plot_eda_distribution_checks.R"))
-source(file.path("src", "plots", "eda", "plot_eda_rolling_variability.R"))
+
 ```
 
 ```{r model-sources, include=FALSE, cache=FALSE}
@@ -85,6 +82,7 @@ source(file.path("src", "models", "model_comparison.R"))
 source(file.path("src", "models", "model_thresholds.R"))
 source(file.path("src", "tables", "table_thresholds.R"))
 source(file.path("src", "tables", "table_monitoring_framework.R"))
+
 ```
 
 ```{r validation-sources, include=FALSE, cache=FALSE}
@@ -92,99 +90,75 @@ source(file.path("src", "models", "model_diagnostics.R"))
 source(file.path("src", "plots", "models", "model_plot_qq_diagnostics.R"))
 source(file.path("src", "models", "robustness_checks.R"))
 source(file.path("src", "plots", "models", "model_plot_robustness.R"))
+
 ```
 
 \newpage
 
 ## Technical Abstract
 
-This report answers the client question on whether Central England seasonal temperatures show a sustained recent shift, which seasons are changing most, and which monitoring thresholds should support internal planning. The analysis uses Met Office HadCET seasonal mean, minimum, and maximum series (v2.1.0.0), combining EDA with season-metric specific GLS models under AR(1) errors for two estimands, baseline shift (1961 to 1990 vs 1991 to 2020) and long-run trend (1879 to 2024). Headline results are coherent across methods. Baseline-shift estimates are positive in all 12 season-metric combinations, with the strongest shifts in spring, whilst winter is the least precise baseline case. Long-run trends are positive in all 12 combinations, with autumn mean warming fastest at $+0.125$ degC per decade. Robustness checks show that post-1975 rates are higher than full-period average rates and that excluding influential extremes does not change directional conclusions.
-
-The main limitations are incomplete representation of residual structure under low-order AR models, visible winter-tail departure in residual diagnostics, heuristic threshold design, and seasonal regional aggregation. These were handled by combining AR(1) with explicit model comparison against OLS and AR(2), checking residual normality with Q-Q diagnostics, running segmented-trend and influential-year sensitivity checks, and framing monitoring thresholds as operational screening rules rather than as fixed optimal policy cut-offs. For decision use, the report recommends mean as the primary monitoring statistic with minimum and maximum as tail-context companions, a 30-year reference baseline for formal statements, and a 10-year lens for recent acceleration surveillance.
+This report addresses the client question of whether Central England seasonal temperatures have shifted in recent decades, which seasons show the strongest change, and which monitoring thresholds should guide internal planning. Using Met Office HadCET seasonal mean, minimum, and maximum series (v2.1.0.0), the analysis combines EDA with season-metric specific GLS models under AR(1) errors to estimate baseline shifts (1991 to 2020 vs 1961 to 1990) and long-run trends (1879 to 2024). The headline conclusion is consistent across methods. Recent shifts are positive across all season-metric combinations, spring shows the largest baseline increases, winter is the least precise baseline case, and long-run trends are positive in all 12 combinations with post-1975 acceleration evident in sensitivity checks.
+The main limitations are simplified dependence modelling, visible winter-tail residual deviation, heuristic monitoring thresholds, and aggregation to seasonal regional series. These were handled by comparing OLS, AR(1), and AR(2) specifications, checking residual diagnostics directly, running segmented-trend and influential-year robustness checks, and presenting threshold rules as operational screening triggers rather than fixed optimal policy cut-offs.
 
 ## Problem Definition and Decision Framework
 
-### Client Decision Context and Statistical Translation
+### Client Decision Context, Scope and Estimands
 
-The client requested an evidence-based and decision-ready assessment of long run and seasonal temperature change in Central England. The request focuses on three linked decisions:
-
--   Whether recent decades show a sustained shift in seasonal mean, minimum, and maximum temperatures relative to earlier baselines.
-
--   Which seasons are changing most and whether the pattern is better described by trend, step change, or changing variability.
-
--   Which metrics and thresholds should be used for internal monitoring and communication.
-
-### Scope, Target Population, Time Window, and Primary Outcomes
-
-The target population is the HadCET Central England seasonal series, representing the Midlands region. The unit of analysis is year, with seasonal outcomes for winter, spring, summer, autumn, and annual. The primary outcomes for this report are seasonal mean, seasonal minimum, and seasonal maximum temperature in degrees Celsius. According to the archived dataset metadata, seasonal mean coverage starts in 1659 and seasonal minimum and maximum coverage starts in 1878. For direct comparison across all three metrics, the common analysis window is 1879 to 2024.
-
-### Estimands and Success Criteria for Decision Support
-
-The primary estimand for level change is the seasonal difference between a recent 30-year period and an earlier 30-year period, estimated separately for each season and each metric. The primary estimand for long run change is the seasonal trend measured in degrees Celsius per decade over the common historical window.
-
-Secondary estimands include changes in seasonal variability and shifts in the full seasonal distribution between baseline periods. Evidence is considered decision-usable when direction, magnitude ranking, and uncertainty statements are coherent across descriptive and model-based checks. For monitoring purposes, quantitative action thresholds are defined as the 10th and 90th percentiles of each season-metric distribution over 1991 to 2020, with a four-level status classification described in Chapter 7.
+The client requires decision-ready evidence on three linked questions, whether recent seasonal temperatures have shifted relative to earlier baselines, which seasons show the strongest changes and in what form, and which monitoring metrics and thresholds should guide internal planning.
+The analysis targets the HadCET Central England seasonal series (Midlands representation), with year as the unit of analysis and seasonal mean, minimum, and maximum temperature (degC) as primary outcomes. For cross-metric comparability, the core window is 1879 to 2024.
+Two primary estimands are used, seasonal baseline shift between 1961 to 1990 and 1991 to 2020, and seasonal long-run trend in degC per decade over 1879 to 2024. Decision support is judged by coherence in direction, seasonal ranking, and uncertainty across descriptive and model-based evidence. Monitoring thresholds are operationalised in Section \@ref(sec:monitoring) using season-metric reference distributions.
 
 ## Data and Pre-processing
 
 ### Data Provenance, Structure, and Analytical Scope
 
-This report uses three archived HadCET seasonal totals files stored in this repository. They correspond to Met Office (2025), *Seasonal Mean, Minimum and Maximum Central England Temperature (HadCET) series* v2.1.0.0, NERC EDS Centre for Environmental Data Analysis, <doi:10.5285/ca43505702fa4eeeba4b65f1ce2c1e6a>.
-
-The unit of analysis is year. Each file contains the fields `year`, `winter`, `spring`, `summer`, `autumn`, and `annual`, with temperatures recorded in degrees Celsius. These fields map directly to the client request to assess seasonal mean, minimum, and maximum temperature change and to compare how that change differs by season.
-
-In the cleaned repository outputs, mean covers 1659 to 2024 with 366 rows, whilst minimum and maximum each cover 1878 to 2024 with 147 rows. Because cross-metric comparison requires overlapping coverage, the main comparative window for mean, minimum, and maximum is 1879 to 2024.
+This analysis uses three archived HadCET seasonal totals files in this repository, corresponding to Met Office (2025), *Seasonal Mean, Minimum and Maximum Central England Temperature (HadCET) series* v2.1.0.0, NERC EDS Centre for Environmental Data Analysis, <doi:10.5285/ca43505702fa4eeeba4b65f1ce2c1e6a>.
+Each file provides year-indexed seasonal temperatures (winter, spring, summer, autumn, annual) in degC. In cleaned outputs, mean covers 1659 to 2024 (366 rows), whilst minimum and maximum each cover 1878 to 2024 (147 rows). 
 
 ### Inclusion/exclusion Rules and Known Data Limitations
 
-The analysis includes the three HadCET seasonal totals series for mean, minimum, and maximum temperature. These files are included because they contain the year-indexed seasonal values needed to compare baseline periods and assess long-run change. Seasonal ranked files are excluded because they are not the underlying time series used in this report. No external datasets, covariates, or spatial joins are included.
+Included data are the three HadCET seasonal totals series (mean, minimum, maximum). Seasonal ranked files are excluded because they are not the underlying time-series inputs for modelling. No external joins, covariates, or spatial merges are used.
+Known limitations are structural. The series is a Central England regional aggregate and does not resolve sub-regional Midlands variation. Seasonal values aggregate three-month periods, so within-season short-duration extremes are not directly represented. Coverage differs by metric (mean from 1659, minimum and maximum from 1878), and the first winter entry in each series is structurally missing because previous-December data are unavailable for the first recorded year.
 
-Known limitations arise from the structure of the source data. The series represents Central England as a regional aggregate, so it does not capture sub-regional variation within the Midlands. The seasonal fields summarise conditions across three-month periods, so short-duration extremes are not directly observed. Coverage is unequal across metrics because the mean series begins in 1659, whilst the minimum and maximum series begin in 1878. In addition, the first winter value in each series is missing because winter includes the previous December, which is unavailable for the first recorded year.
+### Pre-processing and Feature Construction {#sec:preprocessing}
 
-### Pre-processing and Feature Construction
-
-The pre-processing pipeline removed the introductory metadata lines that sit above the data table, dropped the final non-data line, retained the six analytical fields `year`, `winter`, `spring`, `summer`, `autumn`, and `annual`, converted the year field to integer, converted the temperature fields to numeric, and exported the cleaned series for downstream analysis. Additional variables were created only to support later comparison and diagnostics, including indicators for the shared comparison window, baseline periods, record completeness, and the structural first-year winter missing value.
-
-Missing-data handling was straightforward. The only missing entries were the first winter value in each of the three series, which arises from the source definition of winter as previous December plus January and February. These values were retained as structural missing values, and no imputation was applied.
-
-Potentially influential observations were screened within each metric-season series using two explicit rules. The first rule calculated a robust MAD z-score and flagged observations with an absolute value greater than 3.5. The second rule calculated the interquartile range and flagged observations below `Q1 - 1.5 x IQR` or above `Q3 + 1.5 x IQR`. This screening flagged 30 observations across the three series, including unusually cold winters in 1963, unusually warm summers in 1976, and unusually warm autumn values in 2006 and 2022 to 2023. These observations were retained rather than deleted. The flags are spread across different metrics, seasons, and historical periods, and the wider quality checks found no duplicate years, no year gaps, and no non-structural missingness that would indicate a recording or import problem. On that basis, the flagged values were treated as plausible climatic extremes whose influence should be examined later through sensitivity checks rather than removed at the cleaning stage.
-
-After cleaning, all three series were retained for analysis. The mean series contains 366 yearly records from 1659 to 2024, whilst the minimum and maximum series each contain 147 yearly records from 1878 to 2024, so cross-metric comparisons are carried out on their shared period rather than by excluding minimum or maximum altogether. The dataset is otherwise complete, with no duplicate years, no year gaps, and no non-structural missing values.
+Pre-processing removed non-data header and footer lines, retained the six analytical fields `year`, `winter`, `spring`, `summer`, `autumn`, and `annual`, converted `year` to integer, converted seasonal fields to numeric, and exported cleaned series for modelling.
+Missingness is structural rather than random. The only missing values are the first winter entry in each series, caused by the winter definition requiring previous-December data. No imputation was applied.
+Potentially influential observations were flagged using two rules within each season-metric series. The first rule used robust MAD z-scores with `|z| > 3.5`. The second rule used IQR fences with lower bound `Q1 - 1.5*IQR` and upper bound `Q3 + 1.5*IQR`. This flagged 30 observations, including winter 1963, summer 1976, and autumn 2006, 2022, and 2023. Flagged values were retained and evaluated through sensitivity checks in Section \@ref(sec:robustness).
+After cleaning, the mean series contains 366 yearly records from 1659 to 2024, and the minimum and maximum series each contain 147 yearly records from 1878 to 2024. Cross-metric analysis uses the overlapping 1879 to 2024 window.
 
 ## Exploratory Analysis and Descriptive Checks
 
 ### EDA Objectives
 
-The exploratory work addressed two main questions before any formal analysis was applied. The starting point was to examine the raw annual records alongside the long-run rolling averages and the two baseline windows, so that the direction of change and the context of the comparison could be assessed together in a single view. Once the overall direction was established, the next question was whether the pace of warming had remained stable across the record or had intensified in more recent decades. Supplementary distributional and variability diagnostics are retained in the appendix rather than the main EDA narrative, whilst the precise magnitude of the baseline shift is estimated formally in the modelling section.
+The exploratory work addressed two main questions before any formal analysis was applied. The starting point was to examine the raw annual records alongside the long-run rolling averages and the two baseline windows, so that the direction of change and the context of the comparison could be assessed together in a single view. Once the overall direction was established, the next question was whether the pace of warming had remained stable across the record or had intensified in more recent decades.
 
-### Annual Records and Long-Run Context
+### Annual Records and Long-Run Context {#sec:eda-long-run}
 
-Figure 1 plots the raw annual temperature records from 1879 to 2024 for each season, with rolling 30-year mean lines overlaid for each metric and the two comparison windows shaded in the background. 
+Figure \@ref(fig:eda-annotated-series-plot) plots the raw annual temperature records from 1879 to 2024 for each season, with rolling 30-year mean lines overlaid for each metric and the two comparison windows shaded in the background. 
 
 ```{r eda-annotated-series-plot, fig.width=9, fig.height=3.5, fig.cap="Annual HadCET seasonal temperatures by season, with rolling 30-year means."}
 p_eda_annotated <- make_eda_annotated_series_plot(save_plot = TRUE)
 p_eda_annotated
+
 ```
 
 \FloatBarrier
 
 The four panels correspond to the four seasons, each showing faint annual data points alongside three rolling 30-year mean lines for mean, minimum, and maximum temperature distinguished by colour, with the two baseline windows highlighted by shaded bands. The rolling means rise in every panel, with the rate of increase steepening in the later decades, and both shaded windows sit on the upward portion of each curve rather than at a stationary level. The consistent rise across all panels before, during, and after both windows establishes that the baseline shift is part of a sustained long-run process.
 
-### Rolling Warming Rates Through Time
+### Rolling Warming Rates Through Time {#sec:eda-rolling}
 
 ```{r eda-warming-rate-curve-plot, fig.width=9, fig.height=4, fig.cap="Rolling 30-year warming rates by season."}
 p_eda_rate <- make_eda_warming_rate_curve_plot(save_plot = TRUE)
 p_eda_rate
+
 ```
 
-Figure 2 tracks the estimated warming rate within each trailing 30-year window. This turns the long-run trajectories in Figure 1 into a time-varying rate measure, so the record can be assessed not only for direction but also for whether the pace of warming has remained stable or intensified.
-
+Figure \@ref(fig:eda-warming-rate-curve-plot) tracks the estimated warming rate within each trailing 30-year window. This turns the long-run trajectories in Figure \@ref(fig:eda-annotated-series-plot) into a time-varying rate measure, so the record can be assessed not only for direction but also for whether the pace of warming has remained stable or intensified.
 It's clear that the pace of warming has not been constant over time. Around 1950, winter is the only season with a clearly negative rolling warming rate, indicating a temporary cooling phase within the 30-year window, whereas spring, summer, and autumn are already warming and follow broadly similar paths across most of the record. Thereafter, all four seasons move into positive territory after about 1975, and negative rates become rare after 2000. At the same time, the three temperature metrics do not move equally closely together across seasons. Autumn shows the greatest overlap between mean, minimum, and maximum temperature, whilst spring shows the least. Winter and summer are more tightly grouped before about 1950, but separate more clearly afterwards. Therefore, these patterns indicate that temperatures have not only risen in recent decades, but that the rate of increase has also strengthened over time.
 
-### Summary of EDA Findings and Analytical Implications
-
-The two main checks converge on three design requirements for the subsequent analysis. The window comparison must be interpreted against the background of a continuously moving trend, since both baseline periods sit on the upward portion of the same long-run trajectory rather than at stable plateaus. The analysis must be conducted separately for each season and temperature type, given the systematic differences in rate behaviour across these groupings. The supplementary appendix checks indicate that distributional and variability changes exist, but they do not alter the main conclusion that the primary analytical burden should fall on level change and warming rate, with baseline shift magnitude estimated formally in the modelling section.
-
-## Methodology
+## Methodology of Modelling
 
 ```{r model-fit, include=FALSE, cache=TRUE}
 model_df <- prepare_model_data(
@@ -195,9 +169,7 @@ model_df <- prepare_model_data(
   recent_start     = 1991,
   recent_end       = 2020
 )
-
 model_results <- run_gls_models(model_df)
-
 model_shift_tbl <- make_table_model_shift_results(
   model_results$shift,
   save_table       = TRUE,
@@ -206,13 +178,13 @@ model_shift_tbl <- make_table_model_shift_results(
   recent_start     = 1991,
   recent_end       = 2020
 )
-
 model_trend_tbl <- make_table_model_trend_results(
   model_results$trend,
   save_table = TRUE,
   year_start = 1879,
   year_end   = 2024
 )
+
 ```
 
 ```{r shift-examples, include=FALSE, cache=TRUE}
@@ -228,7 +200,6 @@ wm_beta1 <- wm_row$shift
 wm_lower <- wm_row$lower
 wm_upper <- wm_row$upper
 wm_rho   <- wm_row$rho_shift
-
 # Summer minimum: high rho outside winter, CI entirely above zero
 sm_hist_mean <- model_df %>%
   dplyr::filter(season == "summer", metric == "min",
@@ -241,20 +212,17 @@ sm_beta1 <- sm_row$shift
 sm_lower <- sm_row$lower
 sm_upper <- sm_row$upper
 sm_rho   <- sm_row$rho_shift
-
 # Spring maximum: worked example for the long-run trend model
 spmax_trend_df <- model_df %>%
   dplyr::filter(season == "spring", metric == "max") %>%
   dplyr::arrange(year) %>%
   dplyr::mutate(year_c = year - mean(year, na.rm = TRUE))
-
 spmax_trend_fit <- nlme::gls(
   temp_c ~ year_c,
   data        = spmax_trend_df,
   correlation = nlme::corAR1(form = ~year),
   method      = "REML"
 )
-
 spmax_tt         <- summary(spmax_trend_fit)$tTable
 spmax_beta0      <- spmax_tt["(Intercept)", "Value"]
 spmax_beta1_year <- spmax_tt["year_c", "Value"]
@@ -264,47 +232,30 @@ spmax_lower_dec  <- (spmax_beta1_year - 1.96 * spmax_se_year) * 10
 spmax_upper_dec  <- (spmax_beta1_year + 1.96 * spmax_se_year) * 10
 spmax_rho_tr     <- as.numeric(coef(spmax_trend_fit$modelStruct$corStruct, unconstrained = FALSE))
 spmax_tbar       <- mean(spmax_trend_df$year, na.rm = TRUE)
+
 ```
 
 ### Model choice & Assumptions
 
-The modelling strategy must answer two questions, the first one is the baseline contrast between 1961 to 1990 and 1991 to 2020. The second one is the long-run warming rate over the full historical record. 
+The main models are fitted using GLS with an AR(1) error structure. This choice allows for year-to-year dependence in seasonal temperature series while remaining simple, interpretable, and directly comparable across seasons and temperature metrics. 
 
-Annual temperatures tend to be dependent from one year to the next, so ordinary least squares may understate uncertainty if the residuals are treated as fully independent. For that reason, generalised least squares with an AR(1) error structure is taken as the initial working specification, with later tuning used to assess whether a more complex dependence structure provides a materially better fit. Each of the 12 season-metric combinations is fitted separately because the EDA showed that change differs systematically across seasons and temperature types.
-
-This design assumes that each baseline window is approximately centred around its own mean, that residual dependence can be represented by a low-order autoregressive process, and that the innovation term $\eta_t$ is approximately normal. For the long-run trend model, the additional requirement is that a single linear slope over 1879 to 2024 be interpreted as an average rate across the full record rather than as a literal description of every sub-period.
-
-### GLS AR(1): Baseline Shift Model
+### GLS AR(1): Baseline Shift Model {#sec:shift-model}
 
 The shift model estimates **how much warmer the 1991 to 2020 period was compared with 1961 to 1990 for a given season and temperature type**. For each of the 12 season-metric combinations, the model is fitted separately to 60 observations, comprising 30 annual values from the historical window and 30 from the recent window. The formal specification is
-
 $$\text{temp}_{t} = \beta_0 + \beta_1 \cdot \mathbf{1}[\text{recent}_t] + \varepsilon_t, \qquad \varepsilon_t = \rho\,\varepsilon_{t-1} + \eta_t, \quad \eta_t \sim \mathcal{N}(0, \sigma^2)$$
-
 Each symbol has a direct interpretation:
-
 - $\text{temp}_t$ is the observed seasonal temperature in year $t$, the raw number in the dataset. 
-
 - $\beta_0$ is the mean temperature in the historical window, the **baseline level** against which the recent period is compared. 
-
 - The indicator $\mathbf{1}[\text{recent}_t]$ acts as a switch, equalling one for years 1991 to 2020 and zero for years 1961 to 1990. 
-
 - $\beta_1$ is therefore the primary estimand, representing **how much higher the recent window mean is compared with the historical window mean**, in degrees Celsius.
-
 - The residual $\varepsilon_t$ is the difference between that year's observed temperature and the average level for its window, and is modelled as an AR(1) process rather than assumed to be independent across years. 
-
 - The parameter $\rho$ measures how much this year's "above or below average" carries over into next year. If $\rho$ is positive, a year that is warmer than its window average makes the next year more likely to be warmer than its window average too, so adjacent observations are dependent rather than independent. 
-
 - $\eta_t$ is the white-noise innovation remaining after removing that dependence, assumed to follow a normal distribution with mean zero and variance $\sigma^2$. 
-
-The four unknowns $\beta_0$, $\beta_1$, $\rho$, and $\sigma^2$ are estimated jointly using REML in R. The model is fitted 12 times in total, once for each combination of four seasons and three temperature types (mean, minimum, and maximum). Each fit uses an entirely separate set of 60 observations and produces its own estimates of $\beta_1$, $\rho$, and the associated confidence interval. Table 1 and Figure 3 collect all 12 results.
-
-Summer minimum in Table 1 is used here as a worked example to illustrate how the model works:
-
+The four unknowns $\beta_0$, $\beta_1$, $\rho$, and $\sigma^2$ are estimated jointly using REML in R. The model is fitted 12 times in total, once for each combination of four seasons and three temperature types (mean, minimum, and maximum). Each fit uses an entirely separate set of 60 observations and produces its own estimates of $\beta_1$, $\rho$, and the associated confidence interval. Table \@ref(tab:model-shift-table) and Figure \@ref(fig:model-shift-plot) collect all 12 results.
+Summer minimum in Table \@ref(tab:model-shift-table) is used here as a worked example to illustrate how the model works:
 $$\text{temp}_{t} = `r round(sm_hist_mean, 2)` + `r round(sm_beta1, 3)` \cdot \mathbf{1}[\text{recent}_{t}] + \varepsilon_t, \qquad \hat{\rho} = `r round(sm_rho, 3)`$$
-
 The historical-window mean is `r round(sm_hist_mean, 2)`degC and the estimated shift is `r round(sm_beta1, 3)`degC, which means that the average summer minimum temperature in 1991 to 2020 is about 0.62 degC higher than in 1961 to 1990. The estimated $\hat{\rho}$ of `r round(sm_rho, 3)` indicates mild year-to-year dependence in the residual deviations, so adjacent summers are somewhat related rather than fully independent. The 95\% confidence interval [`r round(sm_lower, 3)`, `r round(sm_upper, 3)`] lies entirely above zero, which means that the recent-window increase remains clearly positive even after the AR(1) correction has widened the uncertainty interval.
-
-Table 1 and Figure 3 below point in the same direction across almost all season-metric combinations. Every point estimate is positive, which indicates that the 1991 to 2020 window is warmer than 1961 to 1990 for mean, minimum, and maximum temperature in every season. The clearest evidence appears in spring, where all three confidence intervals lie comfortably above zero and the estimated shifts are also the largest in magnitude. Summer and autumn show the same positive pattern, although with slightly smaller shifts than spring. Winter is the least certain case. Its point estimates are still positive throughout, but the lower bounds of all three intervals fall just below zero, so the evidence for a winter baseline shift is relatively weaker than other seasons.
+Table \@ref(tab:model-shift-table) and Figure \@ref(fig:model-shift-plot) point in the same direction across almost all season-metric combinations. Every point estimate is positive, which indicates that the 1991 to 2020 window is warmer than 1961 to 1990 for mean, minimum, and maximum temperature in every season. The clearest evidence appears in spring, where all three confidence intervals lie comfortably above zero and the estimated shifts are also the largest in magnitude. Summer and autumn show the same positive pattern, although with slightly smaller shifts than spring. Winter is the least certain case. Its point estimates are still positive throughout, but the lower bounds of all three intervals fall just below zero, so the evidence for a winter baseline shift is relatively weaker than other seasons.
 
 ```{r model-shift-table}
 model_shift_tbl_display <- model_shift_tbl %>%
@@ -313,37 +264,31 @@ model_shift_tbl_display <- model_shift_tbl %>%
     `$\\beta_1$: Min`  = Min,
     `$\\beta_1$: Max`  = Max
   )
-
 knitr::kable(
   model_shift_tbl_display,
   caption = "GLS AR(1) baseline shift estimates (degC) with 95\\% CIs.",
+  booktabs = TRUE,
   escape = FALSE
 )
+
 ```
 
 ```{r model-shift-plot, fig.width=8, fig.height=3, fig.cap="GLS AR(1) baseline shift estimates with 95\\% intervals by season and temperature type."}
 p_model_shift <- make_model_shift_plot(model_results$shift, save_plot = TRUE)
 p_model_shift
+
 ```
 
 \FloatBarrier
 
-
-### GLS AR(1): Long-Run Trend Model 
+### GLS AR(1): Long-Run Trend Model {#sec:trend-model}
 
 The long-run trend model asks a different question from the baseline shift model. Instead of comparing two fixed periods, it asks how much temperature tends to change when year increases by one.
-
 $$\text{temp}_{t} = \beta_0 + \beta_1 \cdot (t - \bar{t}) + \varepsilon_t, \qquad \varepsilon_t = \rho\,\varepsilon_{t-1} + \eta_t, \quad \eta_t \sim \mathcal{N}(0, \sigma^2)$$
-
 Here, $\beta_0$ is the fitted temperature level at the average year of the series. $\beta_1$ is the annual slope, so $\beta_1 \times 10$ tells us how much temperature is estimated to increase per decade. The term $(t - \bar{t})$ means that the model measures each year relative to the middle of the observed time period, because this leaves the fitted slope unchanged, makes the intercept easier to interpret, and reduces collinearity between the intercept and slope. 
-
-The definitions of $\varepsilon_t$, $\rho$, $\eta_t$, and $\sigma^2$ are otherwise unchanged from the shift model. Each season-metric combination is again fitted separately, now using the full 1879 to 2024 record, so the estimated slope is less sensitive to the exact placement of the two baseline windows and makes use of substantially more historical information.
-
-Spring maximum in Table 2 is used here as a worked example:
-
+The definitions of $\varepsilon_t$, $\rho$, $\eta_t$, and $\sigma^2$ are otherwise unchanged from the shift model. Each season-metric combination is again fitted separately, now using the full 1879 to 2024 record, so the estimated slope is less sensitive to the exact placement of the two baseline windows and makes use of substantially more historical information. Spring maximum in Table \@ref(tab:model-trend-table) is used here as a worked example:
 $$\text{temp}_{t} = `r round(spmax_beta0, 2)` + `r round(spmax_beta1_year, 4)` \cdot (t - `r round(spmax_tbar, 1)`) + \varepsilon_t, \qquad \hat{\rho} = `r round(spmax_rho_tr, 3)`$$
-
-$\beta_0 = `r round(spmax_beta0, 2)`$ is the fitted spring maximum temperature at the average year of the record, and $\beta_1 = `r round(spmax_beta1_year, 4)`$ means that the fitted spring maximum temperature rises by about `r round(spmax_beta1_year, 4)` degrees Celsius when year increases by one. Multiplying that annual slope by ten gives `r round(spmax_beta1_dec, 3)` degrees Celsius per decade, which is the value reported in Table 2. The estimated $\hat{\rho}$ of `r round(spmax_rho_tr, 3)` is clearly positive, so year-to-year dependence is not negligible in this series. The 95\% confidence interval [`r round(spmax_lower_dec, 3)`, `r round(spmax_upper_dec, 3)`] still remains entirely above zero, so the long-run warming signal remains positive after the AR(1) correction.
+$\beta_0 = `r round(spmax_beta0, 2)`$ is the fitted spring maximum temperature at the average year of the record, and $\beta_1 = `r round(spmax_beta1_year, 4)`$ means that the fitted spring maximum temperature rises by about `r round(spmax_beta1_year, 4)` degrees Celsius when year increases by one. Multiplying that annual slope by ten gives `r round(spmax_beta1_dec, 3)` degrees Celsius per decade, which is the value reported in Table \@ref(tab:model-trend-table). The estimated $\hat{\rho}$ of `r round(spmax_rho_tr, 3)` is clearly positive, so year-to-year dependence is not negligible in this series. The 95\% confidence interval [`r round(spmax_lower_dec, 3)`, `r round(spmax_upper_dec, 3)`] still remains entirely above zero, so the long-run warming signal remains positive after the AR(1) correction.
 
 ```{r model-trend-table}
 model_trend_tbl_display <- model_trend_tbl %>%
@@ -355,57 +300,54 @@ model_trend_tbl_display <- model_trend_tbl %>%
     `$\\beta_1 \\times 10$: Min`  = Min,
     `$\\beta_1 \\times 10$: Max`  = Max
   )
-
 knitr::kable(
   model_trend_tbl_display,
   caption = "GLS AR(1) long-run warming rates (degC per decade).",
+  booktabs = TRUE,
   escape = FALSE
 )
+
 ```
 
 ```{r model-trend-plot, fig.width=8, fig.height=3, fig.cap="GLS AR(1) long-run warming rates with 95\\% intervals by season and temperature type."}
 p_model_trend <- make_model_trend_plot(model_results$trend, save_plot = TRUE)
 p_model_trend
+
 ```
 
-Figure 4 provides clear evidence of positive long-run warming across all seasons and across mean, minimum, and maximum temperature, since all 12 confidence intervals lie entirely above zero. Within that overall pattern, autumn records the fastest average warming rate in the mean series at $+0.125$ degC per decade with 95\% CI $[+0.094, +0.155]$, while summer is slower at $+0.089$ with 95\% CI $[+0.056, +0.122]$. It is also notable that the winter series, which were statistically ambiguous in the baseline-shift model, become clearly positive once the full historical record is used. In Table 1, the winter mean baseline shift was estimated as $+0.692$ degC with 95\% CI $[-0.149, +1.534]$, whereas Figure 4 gives a long-run mean trend of $+0.097$ degC per decade with 95\% CI $[+0.040, +0.155]$.
+Figure \@ref(fig:model-trend-plot) provides clear evidence of positive long-run warming across all seasons and across mean, minimum, and maximum temperature, since all 12 confidence intervals lie entirely above zero. Within that overall pattern, autumn records the fastest average warming rate in the mean series at $+0.125$ degC per decade with 95\% CI $[+0.094, +0.155]$, while summer is slower at $+0.089$ with 95\% CI $[+0.056, +0.122]$. It is also notable that the winter series, which were statistically ambiguous in the baseline-shift model, become clearly positive once the full historical record is used. In Table \@ref(tab:model-shift-table), the winter mean baseline shift was estimated as $+0.692$ degC with 95\% CI $[-0.149, +1.534]$, whereas Figure \@ref(fig:model-trend-plot) gives a long-run mean trend of $+0.097$ degC per decade with 95\% CI $[+0.040, +0.155]$.
+Figure \@ref(fig:eda-warming-rate-curve-plot) helps explain why the single slopes in Figure \@ref(fig:model-trend-plot) differ by season. In broad terms, a larger long-run $\beta_1$ arises when the rolling 30-year warming-rate curves spend more of the record above zero, and when those positive periods are both longer and larger than the negative ones. Autumn fits this pattern most clearly, which is consistent with its higher mean trend of $+0.125$ with 95\% CI $[+0.094, +0.155]$. Winter shows the weakest net warming pattern. In Figure \@ref(fig:eda-warming-rate-curve-plot), the mean rolling rate has a deeper and more sustained negative phase around the mid twentieth century, so more of the historical record offsets the later warming. Spring and summer sit between these two cases. This also helps explain why spring has the largest recent mean baseline shift in Table \@ref(tab:model-shift-table) at $+1.063$ with 95\% CI $[+0.729, +1.396]$, but not the largest full-period trend in Figure \@ref(fig:model-trend-plot), while autumn has a smaller recent shift at $+0.606$ with 95\% CI $[+0.188, +1.024]$ but a stronger long-run average trend.
+Note that these intervals do not capture every source of uncertainty. They do not include model misspecification risk, such as non-linearity in long-run warming, nor unmodelled structural variance change across the record. For decision use, this means interval statements should be read as uncertainty conditional on the current model class. 
 
-Figure 2 helps explain why the single slopes in Figure 4 differ by season. In broad terms, a larger long-run $\beta_1$ arises when the rolling 30-year warming-rate curves spend more of the record above zero, and when those positive periods are both longer and larger than the negative ones. Autumn fits this pattern most clearly, which is consistent with its higher mean trend of $+0.125$ with 95\% CI $[+0.094, +0.155]$. Winter shows the weakest net warming pattern. In Figure 2, the mean rolling rate has a deeper and more sustained negative phase around the mid twentieth century, so more of the historical record offsets the later warming. Spring and summer sit between these two cases. This also helps explain why spring has the largest recent mean baseline shift in Table 1 at $+1.063$ with 95\% CI $[+0.729, +1.396]$, but not the largest full-period trend in Figure 4, while autumn has a smaller recent shift at $+0.606$ with 95\% CI $[+0.188, +1.024]$ but a stronger long-run average trend.
+### Serial Dependence in Baseline and Long-Run Models {#sec:dependence}
 
-### Uncertainty Quantification and Decision Risk
+Figure \@ref(fig:model-combined-rho-plot) reports the estimated AR(1) coefficients, $\hat{\rho}$, for both the baseline shift model and the long-run trend model. These coefficients summarise how strongly residual deviations carry over from one year to the next after the mean structure has been fitted. 
 
-Uncertainty is quantified with 95% confidence intervals, computed as estimate $\pm 1.96 \times \text{SE}$ from the fitted GLS AR(1) models. In Table 1, each interval is attached to the baseline-shift estimand $\beta_1$. In Table 2, each interval is attached to the long-run trend estimand $\beta_1 \times 10$. These intervals describe sampling uncertainty under the stated model assumptions for each season-metric combination.
-
-These intervals do not capture every source of uncertainty. They do not include model misspecification risk, such as non-linearity in long-run warming, nor unmodelled structural variance change across the record. For decision use, this means interval statements should be read as uncertainty conditional on the current model class. The practical implication is that winter baseline shifts remain weaker because their intervals are less separated from zero, while spring, summer, and autumn show stronger directional stability.
-
-### Serial Dependence in Baseline and Long-Run Models
-
-Figure 5 reports the estimated AR(1) coefficients, $\hat{\rho}$, for both the baseline shift model and the long-run trend model. These coefficients summarise how strongly residual deviations carry over from one year to the next after the mean structure has been fitted. 
-
-```{r model-combined-rho-plot, fig.width=8.5, fig.height=3.4, fig.cap="Estimated AR(1) serial dependence coefficients from the baseline shift and long-run trend models by season."}
+```{r model-combined-rho-plot, fig.width=8.5, fig.height=3.4, fig.cap="Estimated AR(1) serial dependence coeff from the baseline shift and LR trend models by season."}
 p_model_combined_rho <- make_model_combined_rho_plot(model_results$rho, save_plot = TRUE)
 p_model_combined_rho
+
 ```
 
-From Figure 5 we can see that serial dependence is not equally strong across the seasonal series. In the baseline shift model, winter and summer have the clearest positive AR(1) coefficients, with values mostly around 0.20 or above across the three temperature metrics, so year-to-year persistence is substantial enough to matter for inference. By contrast, baseline spring lies close to zero and is slightly negative, whilst long-run autumn is also very close to zero. Coefficients of that size should be interpreted cautiously, because they may reflect weak or unstable dependence rather than a statistically meaningful pattern. Autumn in the baseline model remains positive but is clearly weaker than winter and summer. The long-run trend model shows that dependence is still present after the trend has been fitted, especially in winter and in summer minimum, but the pattern is more mixed than in the baseline model. A notable feature is that long-run summer minimum remains clearly higher than the corresponding mean and maximum coefficients, which suggests that residual persistence is not distributed uniformly across the summer temperature range.
-
-Overall, Figure 5 suggests that the AR(1) assumption is worth retaining as a practical working specification, because several series show clear positive persistence and ignoring it would risk understating uncertainty. At the same time, the near-zero cases show that dependence is not uniformly strong in every season, so AR(1) should be treated as an adequate overall correction rather than a perfect description of every individual series.
+From Figure \@ref(fig:model-combined-rho-plot) we can see that serial dependence is not equally strong across the seasonal series. In the baseline shift model, winter and summer have the clearest positive AR(1) coefficients, with values mostly around 0.20 or above across the three temperature metrics, so year-to-year persistence is substantial enough to matter for inference. By contrast, baseline spring lies close to zero and is slightly negative, whilst long-run autumn is also very close to zero. Coefficients of that size should be interpreted cautiously, because they may reflect weak or unstable dependence rather than a statistically meaningful pattern. Autumn in the baseline model remains positive but is clearly weaker than winter and summer. The long-run trend model shows that dependence is still present after the trend has been fitted, especially in winter and in summer minimum, but the pattern is more mixed than in the baseline model. A notable feature is that long-run summer minimum remains clearly higher than the corresponding mean and maximum coefficients, which suggests that residual persistence is not distributed uniformly across the summer temperature range.
+Overall, Figure \@ref(fig:model-combined-rho-plot) suggests that the AR(1) assumption is worth retaining as a practical working specification, because several series show clear positive persistence and ignoring it would risk understating uncertainty. At the same time, the near-zero cases show that dependence is not uniformly strong in every season, so AR(1) should be treated as an adequate overall correction rather than a perfect description of every individual series.
 
 \FloatBarrier
 
-### Model Comparison and Dependence-Order Selection
+### Model Comparison and Dependence-Order Selection {#sec:comparison}
 
 ```{r model-comparison-compute, include=FALSE, cache=TRUE}
 model_comparison_results <- run_model_comparison(model_df)
-
 model_comp_shift_tbl <- format_model_comparison_summary(
   model_comparison_results$shift_summary
 )
-
 model_comp_trend_tbl <- format_model_comparison_summary(
   model_comparison_results$trend_summary
 )
+
 ```
+
+\FloatBarrier
 
 #### Candidate Specifications
 
@@ -413,52 +355,50 @@ This section compares three dependence specifications under the same mean struct
 
 #### Comparison Criteria
 
-The comparison records average AIC, average BIC, and average confidence-interval width for both model families. For the long-run trend family, average rolling one-step-ahead RMSE and its standardised form (NRMSE = RMSE/SD) are also reported because one-step forecasting is directly defined for a continuous time index and scale-normalised error supports cross-series comparison. Table 3 reports the baseline shift comparison, and Table 4 reports the long-run trend comparison.
+The comparison records average AIC, average BIC, and average confidence-interval width for both model families. For the long-run trend family, average rolling one-step-ahead RMSE and its standardised form (NRMSE = RMSE/SD) are also reported because one-step forecasting is directly defined for a continuous time index and scale-normalised error supports cross-series comparison. Table \@ref(tab:model-comparison-table) reports both model families side by side, with columns labelled Base and LR to distinguish the baseline-shift and long-run trend results.
 
 #### Model Comparison, Goodness of fit, and Final Selection
 
-```{r model-comparison-shift-table}
-model_comp_shift_tbl_display <- model_comp_shift_tbl %>%
+```{r model-comparison-table}
+model_comp_tbl_display <- model_comp_shift_tbl %>%
   dplyr::select(Model, `Avg AIC`, `Avg BIC`, `Avg CI width`) %>%
   dplyr::rename(
-    `Avg CI for $\\beta_1$` = `Avg CI width`
-  )
-
-knitr::kable(
-  model_comp_shift_tbl_display,
-  caption = "Baseline-shift model comparison.",
-  escape = FALSE
-)
-```
-
-\FloatBarrier
-
-```{r model-comparison-trend-table}
-model_comp_trend_tbl_display <- model_comp_trend_tbl %>%
-  dplyr::select(
-    Model,
-    `Avg AIC`,
-    `Avg BIC`,
-    `Avg CI width`,
-    `Avg roll RMSE`,
-    `Avg roll NRMSE (RMSE/SD)`
+    `Avg AIC (Base)` = `Avg AIC`,
+    `Avg BIC (Base)` = `Avg BIC`,
+    `Avg CI for $\\beta_1$ (Base)` = `Avg CI width`
   ) %>%
-  dplyr::rename(
-    `Avg CI for $\\beta_1 \\times 10$` = `Avg CI width`
+  dplyr::left_join(
+    model_comp_trend_tbl %>%
+      dplyr::select(
+        Model,
+        `Avg AIC`,
+        `Avg BIC`,
+        `Avg CI width`,
+        `Avg roll RMSE`,
+        `Avg roll NRMSE (RMSE/SD)`
+      ) %>%
+      dplyr::rename(
+        `Avg AIC (LR)` = `Avg AIC`,
+        `Avg BIC (LR)` = `Avg BIC`,
+        `Avg CI for $\\beta_1 \\times 10$ (LR)` = `Avg CI width`,
+        `Avg roll RMSE (LR)` = `Avg roll RMSE`,
+        `Avg roll NRMSE (LR)` = `Avg roll NRMSE (RMSE/SD)`
+      ),
+    by = "Model"
   )
-
 knitr::kable(
-  model_comp_trend_tbl_display,
-  caption = "Long-run trend model comparison.",
+  model_comp_tbl_display,
+  caption = "Model comparison for the baseline-shift and long-run trend specifications.",
+  booktabs = TRUE,
   escape = FALSE
 )
+
 ```
 
 \FloatBarrier
 
-Table 4 reports rolling one-step predictive error in both raw units (RMSE) and standardised units (NRMSE). The spread across models is very small in both metrics: average rolling RMSE ranges from `r sprintf('%.3f', min(model_comparison_results$trend_summary$mean_rolling_rmse, na.rm = TRUE))` to `r sprintf('%.3f', max(model_comparison_results$trend_summary$mean_rolling_rmse, na.rm = TRUE))`, and average rolling NRMSE ranges from `r sprintf('%.3f', min(model_comparison_results$trend_summary$mean_rolling_nrmse, na.rm = TRUE))` to `r sprintf('%.3f', max(model_comparison_results$trend_summary$mean_rolling_nrmse, na.rm = TRUE))`. This indicates that goodness-of-fit differences are negligible on both the temperature scale and the scale-normalised comparison.
-
-Tables 3 and 4 do not identify a single dominant model on fit statistics alone. Average AIC, average BIC, rolling one-step RMSE, and rolling NRMSE are all very close across OLS, AR(1), and AR(2), so the metric differences are too small to justify a selection on fit alone. The deciding consideration is therefore the dependence evidence in Figure 5, where several series show residual persistence around 0.2, making the OLS independence assumption less credible for inference. AR(2) adds complexity but delivers little practical improvement over AR(1) on the reported metrics. For this reason, AR(1) is retained as the working specification, with OLS as a benchmark and AR(2) as a sensitivity alternative.
+Within Table \@ref(tab:model-comparison-table), the long-run columns report rolling one-step predictive error in both raw units (RMSE) and standardised units (NRMSE). The spread across models is very small in both metrics: average rolling RMSE ranges from `r sprintf('%.3f', min(model_comparison_results$trend_summary$mean_rolling_rmse, na.rm = TRUE))` to `r sprintf('%.3f', max(model_comparison_results$trend_summary$mean_rolling_rmse, na.rm = TRUE))`, and average rolling NRMSE ranges from `r sprintf('%.3f', min(model_comparison_results$trend_summary$mean_rolling_nrmse, na.rm = TRUE))` to `r sprintf('%.3f', max(model_comparison_results$trend_summary$mean_rolling_nrmse, na.rm = TRUE))`. This indicates that goodness-of-fit differences are negligible on both the temperature scale and the scale-normalised comparison.
+Table \@ref(tab:model-comparison-table) does not identify a single dominant model on fit statistics alone. Average AIC, average BIC, rolling one-step RMSE, and rolling NRMSE are all very close across OLS, AR(1), and AR(2), so the metric differences are too small to justify a selection on fit alone. The deciding consideration is therefore the dependence evidence in Figure \@ref(fig:model-combined-rho-plot), where several series show residual persistence around 0.2, making the OLS independence assumption less credible for inference. AR(2) adds complexity but delivers little practical improvement over AR(1) on the reported metrics. For this reason, AR(1) is retained as the working specification, with OLS as a benchmark and AR(2) as a sensitivity alternative.
 
 ## Validation and Robustness
 
@@ -467,31 +407,30 @@ This chapter verifies that the selected AR(1) specification provides an adequate
 ```{r diagnostics-compute, include=FALSE, cache=TRUE}
 gls_resid_df <- compute_gls_trend_residuals(model_df)
 robustness_results <- run_all_robustness_checks(model_df, model_results)
+
 ```
 
-### Residual Diagnostics
+### Residual Diagnostics {#sec:diagnostics}
 
 ```{r diag-qq-plot, fig.width=9, fig.height=3.8, fig.cap="Q-Q plots of GLS AR(1) normalised trend residuals by season and temperature type."}
 p_qq <- make_gls_qq_plot(gls_resid_df, save_plot = TRUE)
 p_qq
+
 ```
 
-Figure 6 uses Q-Q plots to check whether model residuals are approximately normal in the range that matters for interval-based inference. This diagnostic is used because the reported 95% confidence intervals in the modelling section rely on a normal approximation for the sampling distribution of the estimators. If residuals deviate strongly from the reference line across most quantiles, that approximation can become unreliable.
-
-Residuals follow the reference line closely through the centre of the distribution in all four seasons. The largest deviation appears in the lower winter tail, consistent with the winter tail extreme identified in Section 3.3. Spring and summer show mild upper-tail deviation, while the central quantiles remain close to the reference line, so they suggest a local tail issue rather than a general model misspecification.
-
-The overall Figure 6 pattern therefore supports the reliability of reported confidence intervals because the central residual quantiles, where most estimation information comes from, align well with the normal reference. The main caution is confined to winter tails, so uncertainty statements remain usable but should be interpreted with slightly greater care for winter edge cases.
+Figure \@ref(fig:diag-qq-plot) uses Q-Q plots to check whether model residuals are approximately normal in the range that matters for interval-based inference. This diagnostic is used because the reported 95% confidence intervals in the modelling section rely on a normal approximation for the sampling distribution of the estimators. If residuals deviate strongly from the reference line across most quantiles, that approximation can become unreliable.
+Residuals follow the reference line closely through the centre of the distribution in all four seasons. The largest deviation appears in the lower winter tail, consistent with the winter tail extreme identified in Section \@ref(sec:preprocessing). Spring and summer show mild upper-tail deviation, while the central quantiles remain close to the reference line, so they suggest a local tail issue rather than a general model misspecification.
+The overall Figure \@ref(fig:diag-qq-plot) pattern therefore supports the reliability of reported confidence intervals because the central residual quantiles, where most estimation information comes from, align well with the normal reference. The main caution is confined to winter tails, so uncertainty statements remain usable but should be interpreted with slightly greater care for winter edge cases.
 
 \FloatBarrier
 
-### Robustness Checks
+### Robustness Checks {#sec:robustness}
 
-This section applies two targeted robustness checks for the long-run findings. The first replaces the single-slope AR(1) trend with a segmented AR(1) specification that uses a fixed 1975 breakpoint. This checks whether the core conclusion changes once the model allows the warming rate to accelerate in the later period. The second re-estimates long-run trends after removing influential year-season observations identified in Section 3.3, which checks whether a small set of extremes drives the headline result.
+This section applies two targeted robustness checks for the long-run findings. The first replaces the single-slope AR(1) trend with a segmented AR(1) specification that uses a fixed 1975 breakpoint. This checks whether the core conclusion changes once the model allows the warming rate to accelerate in the later period. The second re-estimates long-run trends after removing influential year-season observations identified in Section \@ref(sec:preprocessing), which checks whether a small set of extremes drives the headline result.
 
-#### Segmented Linear Trend Sensitivity (Breakpoint at 1975)
+#### Segmented Linear Trend Sensitivity (Breakpoint at 1975) {#sec:segmented}
 
-Figure 7 compares the baseline long-run AR(1) trend against a segmented AR(1) specification with a fixed breakpoint at 1975. The breakpoint is set with direct reference to Figure 2, which shows that warming rates begin to accelerate after around 1975 across all seasons. This check tests whether allowing a faster post-1975 slope changes directional conclusions or seasonal ranking.
-
+Figure \@ref(fig:robustness-segmented-trend-plot) compares the baseline long-run AR(1) trend against a segmented AR(1) specification with a fixed breakpoint at 1975. The breakpoint is set with direct reference to Figure \@ref(fig:eda-warming-rate-curve-plot), which shows that warming rates begin to accelerate after around 1975 across all seasons. This check tests whether allowing a faster post-1975 slope changes directional conclusions or seasonal ranking.
 - First segment: 1879 to 1975, representing the pre-acceleration historical period.
 - Second segment: 1976 to 2024, representing the later period after the fixed 1975 breakpoint.
 
@@ -501,15 +440,16 @@ p_rob_piecewise <- make_segmented_trend_sensitivity_plot(
   save_plot = TRUE
 )
 p_rob_piecewise
+
 ```
 
-Figure 7 shows a consistent pattern across all four seasons and all three temperature metrics, where the post-1975 segmented slopes are higher than the corresponding base AR(1) full-period slopes. The direction remains positive throughout, so the core warming conclusion is unchanged. The uplift is strongest in winter and spring, with particularly large increases in maximum temperature, whilst summer and autumn also rise in the same direction. This means the seasonal ranking of warming pace is not fixed across specifications. Full-period slopes are more balanced, whereas post-1975 slopes are more strongly led by winter and spring. Confidence intervals are wider under the segmented specification because the model estimates extra structure from a shorter effective period, yet the displayed intervals remain above zero. Therefore, the warming direction is robust and the warming rate accelerates in the post-1975 period.
+Figure \@ref(fig:robustness-segmented-trend-plot) shows a consistent pattern across all four seasons and all three temperature metrics, where the post-1975 segmented slopes are higher than the corresponding base AR(1) full-period slopes. The direction remains positive throughout, so the core warming conclusion is unchanged. The uplift is strongest in winter and spring, with particularly large increases in maximum temperature, whilst summer and autumn also rise in the same direction. This means the seasonal ranking of warming pace is not fixed across specifications. Full-period slopes are more balanced, whereas post-1975 slopes are more strongly led by winter and spring. Confidence intervals are wider under the segmented specification because the model estimates extra structure from a shorter effective period, yet the displayed intervals remain above zero. Therefore, the warming direction is robust and the warming rate accelerates in the post-1975 period.
 
 \FloatBarrier
 
-#### Sensitivity to Influential Extreme Years
+#### Sensitivity to Influential Extreme Years {#sec:influential}
 
-Figure 8 evaluates sensitivity to influential points identified in Section 3.3. The excluded observations are winter 1963, summer 1976, autumn 2006, autumn 2022, and autumn 2023.
+Figure \@ref(fig:robustness-influential-trend-plot) evaluates sensitivity to influential points identified in Section \@ref(sec:preprocessing). The excluded observations are winter 1963, summer 1976, autumn 2006, autumn 2022, and autumn 2023.
 
 ```{r robustness-influential-trend-plot, fig.width=10, fig.height=4.5, fig.cap="Sensitivity of long-run AR(1) trends to exclusion of flagged influential year-season observations."}
 p_rob_influential <- make_influential_trend_sensitivity_plot(
@@ -517,26 +457,24 @@ p_rob_influential <- make_influential_trend_sensitivity_plot(
   save_plot = TRUE
 )
 p_rob_influential
+
 ```
 
-Figure 8 indicates that excluding the flagged influential observations has only minor impact on the long-run trend estimates. Point estimates under the exclusion specification remain close to the base AR(1) estimates for every season-metric combination, and the confidence intervals overlap strongly. No directional reversal appears and the relative seasonal pattern remains stable. This indicates that the reported long-run warming trends are not driven by a small set of extreme years.
+Figure \@ref(fig:robustness-influential-trend-plot) indicates that excluding the flagged influential observations has only minor impact on the long-run trend estimates. Point estimates under the exclusion specification remain close to the base AR(1) estimates for every season-metric combination, and the confidence intervals overlap strongly. No directional reversal appears and the relative seasonal pattern remains stable. This indicates that the reported long-run warming trends are not driven by a small set of extreme years.
 
 \FloatBarrier
 
-## Monitoring and Communication Approach
+## Monitoring and Communication Approach {#sec:monitoring}
 
 ### Monitoring Framework
 
-Seasonal mean-based statistics are used as the primary monitoring metric. The robustness analysis in Section 6.2.2 showed that the influential years flagged in Section 3.3 do not materially alter the long-run conclusions, so the standard seasonal series is appropriate for ongoing monitoring without special treatment for individual outlier seasons. Extreme seasons are captured through the P10 and P90 threshold bands defined in Section 7.2.
-
+Seasonal mean-based statistics are used as the primary monitoring metric. The robustness analysis in Section \@ref(sec:influential) showed that the influential years flagged in Section \@ref(sec:preprocessing) do not materially alter the long-run conclusions, so the standard seasonal series is appropriate for ongoing monitoring without special treatment for individual outlier seasons. Extreme seasons are captured through the P10 and P90 threshold bands defined in Section \@ref(sec:thresholds).
 Two baseline windows are used for briefing purposes, as specified in the client brief:
-
 - **30-year (1991 to 2020)** is the primary decision baseline, used for all formal threshold calculations and decision statements.
 - **10-year (2015 to 2024)** serves as a short-horizon signal for detecting whether recent conditions have accelerated beyond the 30-year reference.
+Figure \@ref(fig:eda-warming-rate-curve-plot) provides the empirical basis for this pair of windows. Around 1990, the rolling 30-year warming rates turn consistently and strongly positive across all four seasons, marking a broad acceleration that motivates using 1991 to 2020 as the primary reference period. Around 2010, rates in several seasons begin to fall back from their peak, indicating that the pace of warming has moderated somewhat in the most recent decade whilst remaining positive. The 10-year window captures this post-peak phase, so comparing the two sets of thresholds in Section \@ref(sec:thresholds) shows directly whether recent conditions have already shifted relative to the full 30-year reference.
 
-Figure 2 provides the empirical basis for this pair of windows. Around 1990, the rolling 30-year warming rates turn consistently and strongly positive across all four seasons, marking a broad acceleration that motivates using 1991 to 2020 as the primary reference period. Around 2010, rates in several seasons begin to fall back from their peak, indicating that the pace of warming has moderated somewhat in the most recent decade whilst remaining positive. The 10-year window captures this post-peak phase, so comparing the two sets of thresholds in Section 7.2 shows directly whether recent conditions have already shifted relative to the full 30-year reference.
-
-### Material-Change Thresholds
+### Material-Change Thresholds {#sec:thresholds}
 
 P10 and P90 are used as the reference band boundaries. Each marks the outer 10 per cent of the reference distribution, so a season falling below P10 or above P90 is a genuinely uncommon event relative to the 1991 to 2020 baseline, occurring about once in ten seasons under stable conditions. This frequency is low enough to carry a clear signal for planning purposes without generating alerts so rarely that the framework becomes insensitive to gradual change.
 
@@ -553,7 +491,8 @@ thresholds_combined <- make_monitoring_thresholds_comparison_table(
 
 knitr::kable(
   thresholds_combined,
-  caption = "Seasonal monitoring thresholds from the 30-year window (1991 to 2020) and the 10-year window (2015 to 2024) (degC)."
+  caption = "Seasonal monitoring thresholds from the 30-year window (1991 to 2020) and the 10-year window (2015 to 2024) (degC).",
+  booktabs = TRUE
 )
 ```
 
@@ -573,7 +512,7 @@ Therefore, a three-level status classification is used for planning purposes:
 
 #### Internal Validity
 
-Section 5.5 showed that $\hat{\rho}$ was generally around 0.1 to 0.2 across the fitted series. AR(1) therefore fits the climatic intuition that adjacent years are not fully independent, but it does not follow that the effect of $\rho$ is large enough to materially change every inference. At the same time, AR(1) captures only one-step dependence and AR(2) extends this only slightly. Neither is sufficient to guarantee that more complex, longer-range, or non-linear residual structure has been fully represented. 
+Section \@ref(sec:dependence) showed that $\hat{\rho}$ was generally around 0.1 to 0.2 across the fitted series. AR(1) therefore fits the climatic intuition that adjacent years are not fully independent, but it does not follow that the effect of $\rho$ is large enough to materially change every inference. At the same time, AR(1) captures only one-step dependence and AR(2) extends this only slightly. Neither is sufficient to guarantee that more complex, longer-range, or non-linear residual structure has been fully represented. 
 
 #### External Validity
 
@@ -581,15 +520,15 @@ The conclusions apply to the HadCET Central England seasonal series and to annua
 
 #### Construct Validity
 
-The Chapter 7 monitoring framework is intentionally heuristic. The use of $P10$ and $P90$ as thresholds, together with the 30-year and 10-year reference windows, was chosen for interpretability and operational usefulness in internal briefing rather than because these settings are the unique mathematical optimum. $P10$ and $P90$ are preferable to $P25$ and $P75$ for this purpose because they do not trigger as frequently, but they still represent an empirical compromise rather than a formally optimal cut-off. The same applies to the two reference windows. The 30-year window provides a longer baseline and the 10-year window provides a recent signal, yet both involve judgement rather than a single objectively correct choice.
+The monitoring framework in Section \@ref(sec:monitoring) is intentionally heuristic. The use of $P10$ and $P90$ as thresholds, together with the 30-year and 10-year reference windows, was chosen for interpretability and operational usefulness in internal briefing rather than because these settings are the unique mathematical optimum. $P10$ and $P90$ are preferable to $P25$ and $P75$ for this purpose because they do not trigger as frequently, but they still represent an empirical compromise rather than a formally optimal cut-off. The same applies to the two reference windows. The 30-year window provides a longer baseline and the 10-year window provides a recent signal, yet both involve judgement rather than a single objectively correct choice.
 
 ### Failure Mode That Would Change the Conclusion
 
-The most plausible failure mode is that the model assumptions do not match the true error structure closely enough. Both Sections 5.2 and 5.3 assume that the innovation term $\eta_t$ is approximately normal and use normal approximations to construct standard errors and 95\% confidence intervals. If the true innovations are more skewed, more heavy-tailed, or more prone to extreme values than this assumption allows, then the interval estimates may misstate uncertainty. Section 6.1 suggests that the central residual distributions are broadly acceptable in most season-metric combinations, but the winter tail still departs visibly from the reference line. This means that the direction of warming may remain credible whilst the precision of some interval statements, especially in winter, is less secure than the model formally implies.
+The most plausible failure mode is that the model assumptions do not match the true error structure closely enough. Both Sections \@ref(sec:shift-model) and \@ref(sec:trend-model) assume that the innovation term $\eta_t$ is approximately normal and use normal approximations to construct standard errors and 95\% confidence intervals. If the true innovations are more skewed, more heavy-tailed, or more prone to extreme values than this assumption allows, then the interval estimates may misstate uncertainty. Section \@ref(sec:diagnostics) suggests that the central residual distributions are broadly acceptable in most season-metric combinations, but the winter tail still departs visibly from the reference line. This means that the direction of warming may remain credible whilst the precision of some interval statements, especially in winter, is less secure than the model formally implies.
 
 ### Alternative Approaches and Conditions for Preference
 
-A plausible alternative is a dynamic linear model, which allows both the underlying trend and the error structure to evolve through time instead of imposing one fixed slope and one fixed dependence pattern over the full record. Relative to the GLS long run trend model in Section 5.3, this approach is better suited to the changing warming rates shown in Figure 2, and it would allow changes in the mean structure and residual dependence to be handled within one time-series framework. 
+A plausible alternative is a dynamic linear model, which allows both the underlying trend and the error structure to evolve through time instead of imposing one fixed slope and one fixed dependence pattern over the full record. Relative to the GLS long run trend model in Section \@ref(sec:trend-model), this approach is better suited to the changing warming rates shown in Figure \@ref(fig:eda-warming-rate-curve-plot), and it would allow changes in the mean structure and residual dependence to be handled within one time-series framework. 
 
 It was not chosen here because the report required a common set of results that could be compared directly across seasons and temperature metrics, and the baseline-shift model together with the single long run slope provided a clearer decision-ready summary for that purpose. A dynamic linear model would become preferable if the main objective shifted from estimating recent contrasts and full-period average change to tracking how the pace of warming and the dependence structure evolve through time.
 
@@ -598,16 +537,16 @@ It was not chosen here because the report required a common set of results that 
 ### Claim-to-Evidence Map for Decision 1, 2, and 3
 
 **Claim 1.** Recent decades are warmer than the earlier baseline in most seasons.  
-Technical evidence: Table 1, Figure 3, Section 5.2.
+Technical evidence: Table \@ref(tab:model-shift-table), Figure \@ref(fig:model-shift-plot), Section \@ref(sec:shift-model).
 
 **Claim 2.** Long-run seasonal warming is positive across all four seasons and across mean, minimum, and maximum temperature.  
-Technical evidence: Table 2, Figure 4, Section 5.3.
+Technical evidence: Table \@ref(tab:model-trend-table), Figure \@ref(fig:model-trend-plot), Section \@ref(sec:trend-model).
 
 **Claim 3.** The warming pattern is sustained over the long run and is not adequately described as a single one-off shift.  
-Technical evidence: Figure 1, Figure 2, Figure 7, Sections 4.2, 4.3, and 6.2.1.
+Technical evidence: Figure \@ref(fig:eda-annotated-series-plot), Figure \@ref(fig:eda-warming-rate-curve-plot), Figure \@ref(fig:robustness-segmented-trend-plot), Sections \@ref(sec:eda-long-run), \@ref(sec:eda-rolling), and \@ref(sec:segmented).
 
 **Recommendation 1.** Internal seasonal briefing should use a threshold-based monitoring framework built from recent seasonal reference distributions.  
-Technical evidence: Chapter 7 monitoring-threshold table, Figure 2, Figure 4, and Figure 7.
+Technical evidence: Figure \@ref(fig:eda-warming-rate-curve-plot), Figure \@ref(fig:model-trend-plot), and Figure \@ref(fig:robustness-segmented-trend-plot), Section \@ref(sec:monitoring).
 
 ### Simplifications Planned for the Client-Facing Report
 
@@ -625,29 +564,7 @@ Technical evidence: Chapter 7 monitoring-threshold table, Figure 2, Figure 4, an
 
 ## Appendix: Supplementary EDA Diagnostics
 
-### Distributional Patterns and Tail Behaviour
-
-The main report does not rely on the full distribution plot as a primary EDA figure, but the supplementary diagnostic remains useful for checking whether the baseline contrast is distributed through the body of each series rather than concentrated in a small number of tail years.
-
-```{r appendix-eda-distribution-shift-plot, fig.width=9, fig.height=4.5, fig.cap="Supplementary distributional comparison of 1961-1990 and 1991-2020 by season and metric."}
-p_eda_distribution <- make_eda_distribution_shift_plot(save_plot = TRUE)
-p_eda_distribution
-```
-
-\FloatBarrier
-
-### Changing Variability
-
-The variability diagnostic is retained in the appendix because it is relevant to the brief but secondary to the main EDA questions on long-run direction, warming rate, and baseline shift magnitude.
-
-```{r appendix-eda-rolling-variability-plot, fig.width=9, fig.height=5, fig.cap="Supplementary rolling 30-year standard deviations by season and metric."}
-p_eda_variability <- make_eda_rolling_variability_plot(save_plot = TRUE)
-p_eda_variability
-```
-
-\FloatBarrier
-
 ```{r renv-snapshot, eval=FALSE, include=FALSE}
 #renv::snapshot()
-```
 
+```
