@@ -30,3 +30,5 @@ monitoring-thresholds-table-10y
 unnamed-chunk-1	
 renv-snapshot	
 model-comparison-table	model_comp_tbl_display
+model-comparison-base-table	model_comp_base_display
+model-comparison-lr-table	model_comp_lr_display

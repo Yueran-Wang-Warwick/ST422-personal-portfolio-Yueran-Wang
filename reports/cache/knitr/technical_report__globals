@@ -30,3 +30,5 @@ monitoring-thresholds-table-10y	fmt_thresholds	monitoring_thresholds_10
 unnamed-chunk-1	
 renv-snapshot	
 model-comparison-table	model_comp_shift_tbl	model_comp_trend_tbl
+model-comparison-base-table	model_comp_shift_tbl
+model-comparison-lr-table	model_comp_trend_tbl
