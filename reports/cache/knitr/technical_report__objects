@@ -27,3 +27,5 @@ monitoring-thresholds-compute	monitoring_thresholds	monitoring_thresholds_10
 monitoring-thresholds-table	thresholds_combined
 threshold-status-table	threshold_status_tbl
 monitoring-thresholds-table-10y	
+unnamed-chunk-1	
+renv-snapshot	

@@ -27,3 +27,5 @@ monitoring-thresholds-compute	compute_monitoring_thresholds
 monitoring-thresholds-table	make_monitoring_thresholds_comparison_table	monitoring_thresholds	monitoring_thresholds_10
 threshold-status-table	make_threshold_table
 monitoring-thresholds-table-10y	fmt_thresholds	monitoring_thresholds_10
+unnamed-chunk-1	
+renv-snapshot	

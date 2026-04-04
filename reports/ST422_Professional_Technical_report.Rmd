@@ -12,6 +12,10 @@ output:
 header-includes:
   - \usepackage{float}
   - \usepackage{placeins}
+  - \usepackage{etoolbox}
+  - \makeatletter
+  - \pretocmd{\tableofcontents}{\newpage}{}{}
+  - \makeatother
 ---
 
 ```{r setup, include=FALSE}
@@ -26,7 +30,7 @@ dir.create(file.path(cache_root, "knitr"), recursive = TRUE, showWarnings = FALS
 dir.create(file.path(cache_root, "figures"), recursive = TRUE, showWarnings = FALSE)
 
 # Invalidate cache automatically when any R source file under src/ changes.
-src_files <- list.files("src", pattern = "\\.R$", full.names = TRUE)
+src_files <- list.files("src", pattern = "\\.R$", full.names = TRUE, recursive = TRUE)
 src_stamp <- if (length(src_files) == 0) {
   "no_src_files"
 } else {
@@ -62,39 +66,41 @@ knitr::opts_chunk$set(
 ```
 
 ```{r eda-sources, include=FALSE, cache=FALSE}
-source(file.path("src", "eda_utils.R"))
-source(file.path("src", "plot_eda_annotated_series.R"))
-source(file.path("src", "plot_eda_warming_rate_curve.R"))
-source(file.path("src", "plot_eda_distribution_checks.R"))
-source(file.path("src", "plot_eda_rolling_variability.R"))
+source(file.path("src", "utils", "eda_utils.R"))
+source(file.path("src", "plots", "eda", "plot_eda_annotated_series.R"))
+source(file.path("src", "plots", "eda", "plot_eda_warming_rate_curve.R"))
+source(file.path("src", "plots", "eda", "plot_eda_distribution_checks.R"))
+source(file.path("src", "plots", "eda", "plot_eda_rolling_variability.R"))
 ```
 
 ```{r model-sources, include=FALSE, cache=FALSE}
-source(file.path("src", "table_utils.R"))
-source(file.path("src", "modeling_gls_ar1.R"))
-source(file.path("src", "model_plot_baseline_shift_gls_ar1.R"))
-source(file.path("src", "model_plot_long_run_trend_gls_ar1.R"))
-source(file.path("src", "model_plot_error_dependence_gls_ar1.R"))
-source(file.path("src", "table_model_shift_results.R"))
-source(file.path("src", "table_model_trend_results.R"))
-source(file.path("src", "model_comparison.R"))
-source(file.path("src", "model_thresholds.R"))
-source(file.path("src", "table_thresholds.R"))
-source(file.path("src", "table_monitoring_framework.R"))
+source(file.path("src", "utils", "table_utils.R"))
+source(file.path("src", "models", "modeling_gls_ar1.R"))
+source(file.path("src", "plots", "models", "model_plot_baseline_shift_gls_ar1.R"))
+source(file.path("src", "plots", "models", "model_plot_long_run_trend_gls_ar1.R"))
+source(file.path("src", "plots", "models", "model_plot_error_dependence_gls_ar1.R"))
+source(file.path("src", "tables", "table_model_shift_results.R"))
+source(file.path("src", "tables", "table_model_trend_results.R"))
+source(file.path("src", "models", "model_comparison.R"))
+source(file.path("src", "models", "model_thresholds.R"))
+source(file.path("src", "tables", "table_thresholds.R"))
+source(file.path("src", "tables", "table_monitoring_framework.R"))
 ```
 
 ```{r validation-sources, include=FALSE, cache=FALSE}
-source(file.path("src", "model_diagnostics.R"))
-source(file.path("src", "model_plot_qq_diagnostics.R"))
-source(file.path("src", "robustness_checks.R"))
-source(file.path("src", "model_plot_robustness.R"))
+source(file.path("src", "models", "model_diagnostics.R"))
+source(file.path("src", "plots", "models", "model_plot_qq_diagnostics.R"))
+source(file.path("src", "models", "robustness_checks.R"))
+source(file.path("src", "plots", "models", "model_plot_robustness.R"))
 ```
 
 \newpage
 
 ## Technical Abstract
 
-[Placeholder: complete after the analytical workflow is finalised and verified outputs are available. This section must include the client question, the core analytical approach, the headline technical conclusion, and the main limitations with handling.]
+This report answers the client question on whether Central England seasonal temperatures show a sustained recent shift, which seasons are changing most, and which monitoring thresholds should support internal planning. The analysis uses Met Office HadCET seasonal mean, minimum, and maximum series (v2.1.0.0), combining EDA with season-metric specific GLS models under AR(1) errors for two estimands, baseline shift (1961 to 1990 vs 1991 to 2020) and long-run trend (1879 to 2024). Headline results are coherent across methods. Baseline-shift estimates are positive in all 12 season-metric combinations, with the strongest shifts in spring, whilst winter is the least precise baseline case. Long-run trends are positive in all 12 combinations, with autumn mean warming fastest at $+0.125$ degC per decade. Robustness checks show that post-1975 rates are higher than full-period average rates and that excluding influential extremes does not change directional conclusions.
+
+The main limitations are incomplete representation of residual structure under low-order AR models, visible winter-tail departure in residual diagnostics, heuristic threshold design, and seasonal regional aggregation. These were handled by combining AR(1) with explicit model comparison against OLS and AR(2), checking residual normality with Q-Q diagnostics, running segmented-trend and influential-year sensitivity checks, and framing monitoring thresholds as operational screening rules rather than as fixed optimal policy cut-offs. For decision use, the report recommends mean as the primary monitoring statistic with minimum and maximum as tail-context companions, a 30-year reference baseline for formal statements, and a 10-year lens for recent acceleration surveillance.
 
 ## Problem Definition and Decision Framework
 
@@ -615,6 +621,8 @@ Technical evidence: Chapter 7 monitoring-threshold table, Figure 2, Figure 4, an
 
 [[PENDING_REPRODUCIBILITY]]
 
+\newpage
+
 ## Appendix: Supplementary EDA Diagnostics
 
 ### Distributional Patterns and Tail Behaviour
@@ -639,10 +647,7 @@ p_eda_variability
 
 \FloatBarrier
 
-```{r}
-renv::status()
-
-
-
+```{r renv-snapshot, eval=FALSE, include=FALSE}
+#renv::snapshot()
 ```
 
