@@ -1,0 +1,243 @@
+---
+title: "data-cleansing"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(
+  echo = TRUE,
+  message = FALSE,
+  warning = FALSE
+)
+```
+
+```{r libraries}
+library(readr)
+library(dplyr)
+library(tidyr)
+library(purrr)
+```
+
+```{r config}
+season_cols <- c("winter", "spring", "summer", "autumn", "annual")
+required_cols <- c("year", season_cols)
+
+raw_files <- tibble::tribble(
+  ~metric, ~path,
+  "mean", "raw/mean/cet_v2-1-0-0_meantemp-seasonal-totals.csv",
+  "min",  "raw/min/cet_v2-1-0-0_mintemp-seasonal-totals.csv",
+  "max",  "raw/max/cet_v2-1-0-0_maxtemp-seasonal-totals.csv"
+)
+
+dir.create("processed", showWarnings = FALSE, recursive = TRUE)
+dir.create("processed/features", showWarnings = FALSE, recursive = TRUE)
+dir.create("processed/qa", showWarnings = FALSE, recursive = TRUE)
+```
+
+```{r helper-functions}
+read_hadcet_totals <- function(path, metric) {
+  raw_tbl <- read_csv(
+    path,
+    skip = 38,
+    na = c("NA", ""),
+    show_col_types = FALSE,
+    col_types = cols(.default = col_character())
+  ) %>%
+    slice(-n())
+
+  missing_cols <- setdiff(required_cols, names(raw_tbl))
+  if (length(missing_cols) > 0) {
+    stop("Missing required columns in ", path, ": ", paste(missing_cols, collapse = ", "))
+  }
+
+  cleaned_tbl <- raw_tbl %>%
+    select(all_of(required_cols)) %>%
+    mutate(
+      year = parse_integer(year),
+      across(all_of(season_cols), parse_double)
+    ) %>%
+    arrange(year)
+
+  list(
+    data = cleaned_tbl
+  )
+}
+
+augment_wide_features <- function(df, metric) {
+  first_year <- min(df$year, na.rm = TRUE)
+
+  df %>%
+    mutate(
+      metric = metric,
+      in_common_window = dplyr::between(year, 1879L, 2024L),
+      baseline_period = case_when(
+        dplyr::between(year, 1961L, 1990L) ~ "1961_1990",
+        dplyr::between(year, 1991L, 2020L) ~ "1991_2020",
+        TRUE ~ NA_character_
+      ),
+      complete_record = if_all(all_of(season_cols), ~ !is.na(.x)),
+      structural_first_winter_missing = year == first_year & is.na(winter)
+    )
+}
+
+make_long_features <- function(df, metric) {
+  first_year <- min(df$year, na.rm = TRUE)
+
+  df %>%
+    mutate(metric = metric) %>%
+    pivot_longer(
+      cols = all_of(season_cols),
+      names_to = "season",
+      values_to = "temperature_c"
+    ) %>%
+    mutate(
+      season = factor(season, levels = season_cols),
+      in_common_window = dplyr::between(year, 1879L, 2024L),
+      baseline_period = case_when(
+        dplyr::between(year, 1961L, 1990L) ~ "1961_1990",
+        dplyr::between(year, 1991L, 2020L) ~ "1991_2020",
+        TRUE ~ NA_character_
+      ),
+      missing_type = case_when(
+        is.na(temperature_c) & season == "winter" & year == first_year ~ "structural_first_winter",
+        is.na(temperature_c) ~ "other_missing",
+        TRUE ~ "observed"
+      )
+    )
+}
+
+summarise_quality <- function(df, metric, path) {
+  duplicate_years <- df %>%
+    count(year, name = "n_records") %>%
+    filter(n_records > 1)
+
+  year_gaps <- if (nrow(df) > 1) sum(diff(df$year) != 1L, na.rm = TRUE) else 0L
+  first_year <- min(df$year, na.rm = TRUE)
+  total_missing <- sum(is.na(df[season_cols]))
+  structural_missing_count <- sum(df$year == first_year & is.na(df$winter))
+
+  tibble(
+    metric = metric,
+    source_file = path,
+    import_rule = "read_csv(skip = 38) then slice(-n())",
+    joins_or_merges = "none",
+    rows = nrow(df),
+    start_year = min(df$year, na.rm = TRUE),
+    end_year = max(df$year, na.rm = TRUE),
+    duplicate_year_count = nrow(duplicate_years),
+    non_consecutive_year_gap_count = year_gaps,
+    invalid_year_count = sum(is.na(df$year)),
+    total_missing_values = total_missing,
+    structural_missing_values = structural_missing_count,
+    non_structural_missing_values = total_missing - structural_missing_count
+  )
+}
+
+summarise_missingness <- function(df, metric) {
+  first_year <- min(df$year, na.rm = TRUE)
+
+  df %>%
+    pivot_longer(cols = all_of(season_cols), names_to = "season", values_to = "temperature_c") %>%
+    group_by(season) %>%
+    summarise(
+      metric = metric,
+      missing_count = sum(is.na(temperature_c)),
+      structural_missing_count = sum(is.na(temperature_c) & season == "winter" & year == first_year),
+      non_structural_missing_count = missing_count - structural_missing_count,
+      .groups = "drop"
+    ) %>%
+    relocate(metric)
+}
+
+flag_outliers <- function(long_tbl) {
+  long_tbl %>%
+    group_by(metric, season) %>%
+    mutate(
+      series_median = median(temperature_c, na.rm = TRUE),
+      series_mad = mad(temperature_c, center = median(temperature_c, na.rm = TRUE), constant = 1.4826, na.rm = TRUE),
+      q1 = quantile(temperature_c, 0.25, na.rm = TRUE, names = FALSE),
+      q3 = quantile(temperature_c, 0.75, na.rm = TRUE, names = FALSE),
+      series_iqr = IQR(temperature_c, na.rm = TRUE),
+      robust_z = if_else(
+        is.na(temperature_c) | is.na(series_mad) | series_mad == 0,
+        NA_real_,
+        (temperature_c - series_median) / series_mad
+      ),
+      iqr_lower = q1 - 1.5 * series_iqr,
+      iqr_upper = q3 + 1.5 * series_iqr,
+      flag_outlier_mad = !is.na(robust_z) & abs(robust_z) > 3.5,
+      flag_outlier_iqr = !is.na(temperature_c) & !is.na(series_iqr) & series_iqr > 0 &
+        (temperature_c < iqr_lower | temperature_c > iqr_upper),
+      flag_outlier_any = flag_outlier_mad | flag_outlier_iqr
+    ) %>%
+    ungroup()
+}
+```
+
+```{r import-clean-validate}
+datasets <- pmap(
+  list(raw_files$path, raw_files$metric),
+  read_hadcet_totals
+)
+names(datasets) <- raw_files$metric
+
+clean_wide <- imap(datasets, ~ augment_wide_features(.x$data, .y))
+clean_long <- imap_dfr(datasets, ~ make_long_features(.x$data, .y))
+
+quality_summary <- imap_dfr(
+  datasets,
+  ~ summarise_quality(.x$data, .y, raw_files$path[raw_files$metric == .y])
+)
+
+missingness_summary <- imap_dfr(
+  datasets,
+  ~ summarise_missingness(.x$data, .y)
+)
+```
+
+```{r inspection}
+quality_summary
+missingness_summary
+```
+
+```{r outlier-flagging}
+outlier_flags <- flag_outliers(clean_long)
+
+outlier_summary <- outlier_flags %>%
+  group_by(metric, season) %>%
+  summarise(
+    n_flagged_mad = sum(flag_outlier_mad, na.rm = TRUE),
+    n_flagged_iqr = sum(flag_outlier_iqr, na.rm = TRUE),
+    n_flagged_any = sum(flag_outlier_any, na.rm = TRUE),
+    .groups = "drop"
+  )
+
+outlier_review <- outlier_flags %>%
+  filter(flag_outlier_any) %>%
+  select(
+    metric, year, season, temperature_c, baseline_period, in_common_window,
+    robust_z, iqr_lower, iqr_upper, flag_outlier_mad, flag_outlier_iqr
+  ) %>%
+  arrange(metric, season, year)
+```
+
+```{r inspection-outliers}
+outlier_summary
+outlier_review
+```
+
+```{r export}
+write_csv(select(clean_wide$mean, all_of(required_cols)), "processed/data_mean_cleaned.csv")
+write_csv(select(clean_wide$min, all_of(required_cols)), "processed/data_min_cleaned.csv")
+write_csv(select(clean_wide$max, all_of(required_cols)), "processed/data_max_cleaned.csv")
+
+write_csv(bind_rows(clean_wide), "processed/features/hadcet_wide_with_flags.csv")
+write_csv(clean_long, "processed/features/hadcet_long_with_flags.csv")
+
+write_csv(quality_summary, "processed/qa/quality_summary.csv")
+write_csv(missingness_summary, "processed/qa/missingness_summary.csv")
+write_csv(outlier_summary, "processed/qa/outlier_summary.csv")
+write_csv(outlier_review, "processed/qa/outlier_review.csv")
+```
+
+

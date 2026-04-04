@@ -1,0 +1,29 @@
+eda-sources	
+model-sources	
+validation-sources	
+eda-annotated-series-plot	make_eda_annotated_series_plot
+eda-warming-rate-curve-plot	make_eda_warming_rate_curve_plot
+model-fit	make_table_model_shift_results	make_table_model_trend_results	prepare_model_data	run_gls_models
+shift-examples	model_df	model_results
+model-shift-table	model_shift_tbl
+model-shift-plot	make_model_shift_plot	model_results
+model-trend-table	model_trend_tbl
+model-trend-plot	make_model_trend_plot	model_results
+model-combined-rho-plot	make_model_combined_rho_plot	model_results
+model-comparison-compute	format_model_comparison_summary	model_df	run_model_comparison
+model-comparison-shift-table	model_comp_shift_tbl
+model-comparison-trend-table	model_comp_trend_tbl
+diagnostics-compute	compute_gls_trend_residuals	model_df	model_results	run_all_robustness_checks
+diag-qq-plot	gls_resid_df	make_gls_qq_plot
+robustness-segmented-trend-plot	make_segmented_trend_sensitivity_plot	robustness_results
+robustness-influential-trend-plot	make_influential_trend_sensitivity_plot	robustness_results
+threshold-compute	make_baseline_window_table	make_monitoring_framework_table	make_threshold_table
+monitoring-framework-table	make_monitoring_framework_table
+threshold-table	threshold_tbl
+appendix-eda-distribution-shift-plot	make_eda_distribution_shift_plot
+appendix-eda-rolling-variability-plot	make_eda_rolling_variability_plot
+baseline-window-table	make_baseline_window_table
+monitoring-thresholds-compute	compute_monitoring_thresholds
+monitoring-thresholds-table	make_monitoring_thresholds_comparison_table	monitoring_thresholds	monitoring_thresholds_10
+threshold-status-table	make_threshold_table
+monitoring-thresholds-table-10y	fmt_thresholds	monitoring_thresholds_10

@@ -1,0 +1,4 @@
+metric,source_file,import_rule,joins_or_merges,rows,start_year,end_year,duplicate_year_count,non_consecutive_year_gap_count,invalid_year_count,total_missing_values,structural_missing_values,non_structural_missing_values
+mean,raw/mean/cet_v2-1-0-0_meantemp-seasonal-totals.csv,read_csv(skip = 38) then slice(-n()),none,366,1659,2024,0,0,0,1,1,0
+min,raw/min/cet_v2-1-0-0_mintemp-seasonal-totals.csv,read_csv(skip = 38) then slice(-n()),none,147,1878,2024,0,0,0,1,1,0
+max,raw/max/cet_v2-1-0-0_maxtemp-seasonal-totals.csv,read_csv(skip = 38) then slice(-n()),none,147,1878,2024,0,0,0,1,1,0

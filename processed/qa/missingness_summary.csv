@@ -1,0 +1,16 @@
+metric,season,missing_count,structural_missing_count,non_structural_missing_count
+mean,annual,0,0,0
+mean,autumn,0,0,0
+mean,spring,0,0,0
+mean,summer,0,0,0
+mean,winter,1,1,0
+min,annual,0,0,0
+min,autumn,0,0,0
+min,spring,0,0,0
+min,summer,0,0,0
+min,winter,1,1,0
+max,annual,0,0,0
+max,autumn,0,0,0
+max,spring,0,0,0
+max,summer,0,0,0
+max,winter,1,1,0

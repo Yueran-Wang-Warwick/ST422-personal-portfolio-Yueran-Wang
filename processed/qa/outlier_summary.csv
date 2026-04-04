@@ -1,0 +1,16 @@
+metric,season,n_flagged_mad,n_flagged_iqr,n_flagged_any
+max,winter,1,2,2
+max,spring,0,0,0
+max,summer,0,1,1
+max,autumn,0,1,1
+max,annual,0,1,1
+mean,winter,1,3,3
+mean,spring,0,1,1
+mean,summer,0,3,3
+mean,autumn,0,5,5
+mean,annual,1,5,5
+min,winter,1,1,1
+min,spring,0,2,2
+min,summer,0,0,0
+min,autumn,0,2,2
+min,annual,0,3,3
