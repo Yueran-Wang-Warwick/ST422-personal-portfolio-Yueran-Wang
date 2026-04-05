@@ -32,3 +32,10 @@ renv-snapshot
 model-comparison-table	model_comp_shift_tbl	model_comp_trend_tbl
 model-comparison-base-table	model_comp_shift_tbl
 model-comparison-lr-table	model_comp_trend_tbl
+cr-eda-annotated-series-plot	make_eda_annotated_series_plot
+cr-model-fit	prepare_model_data	run_gls_models
+cr-monitoring-thresholds-compute	compute_monitoring_thresholds
+cr-model-shift-plot	make_model_shift_plot	model_results
+cr-model-trend-plot	make_model_trend_plot	model_results
+cr-eda-warming-rate-curve-plot	make_eda_warming_rate_curve_plot
+cr-monitoring-thresholds-table	make_monitoring_thresholds_comparison_table	monitoring_thresholds	monitoring_thresholds_10
