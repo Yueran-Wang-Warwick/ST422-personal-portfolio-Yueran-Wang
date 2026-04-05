@@ -27,9 +27,8 @@ header-includes:
 
 ```{r setup, include=FALSE}
 knitr::opts_knit$set(root.dir = normalizePath(".."))
+
 # Global cache directory for fast re-knit.
-# All cached objects are stored under:
-#   F:/Warwick_Module/ST422/ST422_personal_portfolio/cache
 cache_root <- normalizePath(file.path("cache"), winslash = "/", mustWork = FALSE)
 dir.create(cache_root, recursive = TRUE, showWarnings = FALSE)
 dir.create(file.path(cache_root, "knitr"), recursive = TRUE, showWarnings = FALSE)
@@ -65,9 +64,6 @@ knitr::opts_chunk$set(
   cache.comments = FALSE,
   cache.extra = list(src_stamp, data_stamp, force_recompute, R.version.string)
 )
-
-# Prevent kableExtra from auto-loading LaTeX packages (e.g. tabu.sty, longtable.sty)
-# that may not be present in the local TinyTeX installation.
 options(kableExtra.latex.load_packages = FALSE)
 
 ```
@@ -106,28 +102,18 @@ source(file.path("src", "plots", "models", "model_plot_robustness.R"))
 
 ## Executive summary
 
-### The client question
+**The client question**: The brief asked for an evidence-based view of how Central England temperatures have changed across the four seasons, and what those changes mean for internal planning. Three practical questions drove the work, covering whether recent decades are measurably warmer than an earlier generation, which seasons have changed the most, and what monitoring thresholds to use in seasonal briefings.
 
-The brief asked for an evidence-based view of how Central England temperatures have changed across the four seasons, and what those changes mean for internal planning. Three practical questions drove the work, covering whether recent decades are measurably warmer than an earlier generation, which seasons have changed the most, and what monitoring thresholds to use in seasonal briefings. This report addresses all three.
+**Headline findings with Evidence Anchors**:
 
-### Headline findings
+- Spring temperatures averaged roughly 1.1 degrees Celsius higher in the 1991 to 2020 period than in 1961 to 1990, the largest shift of the four seasons. Summer and autumn also show clear increases. Winter points in the same direction with a smaller and less certain shift (see Figure \@ref(fig:cr-model-shift-plot)).
+- Over the full historical record from 1879 to 2024, every season has been warming at a sustained long-run rate. All four seasons fall in the range of about 0.09 to 0.13 degrees Celsius per decade, with autumn warming fastest and summer warming slowest (see Figure \@ref(fig:cr-model-trend-plot)).
+- The pace of warming strengthened after around 1975. Warming rates estimated over the most recent decades are consistently higher than those calculated over the full historical record in every season (see Figure \@ref(fig:cr-eda-warming-rate-curve-plot)).
+- A seasonal monitoring framework has been defined, assigning any incoming season a status of Reference, Watch, Action, or Escalation based on how far that season sits from the 1991 to 2020 reference distribution (see Table \@ref(tab:cr-monitoring-thresholds-table)).
 
-- Spring temperatures averaged roughly 1.1 degrees Celsius higher in the 1991 to 2020 period than in 1961 to 1990, the largest shift of the four seasons. Summer and autumn also show clear increases. Winter points in the same direction with a smaller and less certain shift.
-- Over the full historical record from 1879 to 2024, every season has been warming at a sustained long-run rate. All four seasons fall in the range of about 0.09 to 0.13 degrees Celsius per decade, with autumn warming fastest and summer warming slowest.
-- The pace of warming strengthened after around 1975. Warming rates estimated over the most recent decades are consistently higher than those calculated over the full historical record in every season.
-- A seasonal monitoring framework has been defined, assigning any incoming season a status of Reference, Watch, Action, or Escalation based on how far that season sits from the 1991 to 2020 reference distribution.
+**Recommendation**: We recommend adopting the 1991–2020 period as the stand-alone reference baseline for seasonal planning and using the established normal seasonal range shown in Table \@ref(tab:cr-monitoring-thresholds-table) as the operating band for routine monitoring. This gives internal briefings a clear, ready-to-use decision rule for when an incoming season warrants attention and when it does not. Any season falling noticeably outside that range should be flagged for follow-up. Winter conclusions should be treated with marginally more caution than the other three seasons, as its estimated shift is less precisely determined.
 
-### Recommendation
-
-Update all internal planning benchmarks to the 1991 to 2020 reference window. Assumptions built on the 1961 to 1990 baseline are now understating typical seasonal temperatures by roughly 0.6 to 1.1 degrees Celsius depending on the season, and this gap is likely to widen as the long-run warming trend continues. The main adjustment required is a revision of existing plans that use the older baseline, since any thresholds or targets set against 1961 to 1990 conditions will be exceeded more frequently than originally intended. Implement the four-level threshold framework from the next seasonal briefing cycle to enable consistent monitoring going forward.
-
-### Evidence anchors
-
-See Figure 1 in Section 3.2, Figure 2 in Section 4.1, Figure 3 in Section 4.2, Figure 4 in Section 4.3, and Table 1 in Section 4.4.
-
-### Key uncertainties
-
-The winter warming signal points in the same direction as the other three seasons, but its magnitude is less certain. The range of plausible values for the winter baseline shift includes zero, so winter conclusions should be treated with more caution than spring, summer, and autumn. All findings are specific to the Central England regional aggregate and do not describe variation at a finer local scale. The monitoring thresholds are designed for practical use in seasonal briefings, and different threshold settings would trigger alerts at different rates, which is worth bearing in mind if the framework is reviewed in future.
+**Key uncertainties**: The broad direction of change is clear, but the exact size of that change is less certain for unusually extreme seasons. The statistical checks suggest that the main pattern is reliable, whilst also indicating that the uncertainty around the most exceptional seasons may be slightly larger than the reported ranges suggest. The evidence is based on seasonal averages for Central England as a whole, so a season that looks typical in the overall data could still contain shorter periods of unusually hot or cold weather. The monitoring thresholds should also be read as practical decision rules for internal briefings, which means that different threshold choices would lead to alerts being triggered at different rates.
 
 ## Client brief and scope
 
