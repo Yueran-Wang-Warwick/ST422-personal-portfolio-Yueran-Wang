@@ -39,3 +39,6 @@ cr-model-shift-plot	p_model_shift
 cr-model-trend-plot	p_model_trend
 cr-eda-warming-rate-curve-plot	p_eda_rate
 cr-monitoring-thresholds-table	thresholds_combined
+cr-monitoring-thresholds-plot	p_cr_monitoring
+monitoring-thresholds-plot	p_monitoring_thresholds
+appendix-management-plan-inline	compact_lines	hr_like	mp_candidates	mp_lines	mp_path

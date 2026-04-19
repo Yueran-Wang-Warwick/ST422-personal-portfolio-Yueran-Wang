@@ -5,6 +5,20 @@ This repository contains the full workflow for the ST422 consultancy portfolio o
 ```text
 ST422_Personal_Portfolio_Yueran_Wang/
 |
+|-- appendix/
+|   |-- audit_reports/
+|   |   |-- AUDIT_REPORT.html
+|   |   |-- AUDIT_REPORT.md
+|   |   `-- individual_action_log.md
+|   |-- group_contact_log/
+|   |   |-- 2026-02-17_meeting_APPROVED.md
+|   |   |-- 2026-02-23_meeting_APPROVED.md
+|   |   |-- 2026-03-04_meeting_APPROVED.md
+|   |   |-- 2026-03-09_meeting_APPROVED.md
+|   |   |-- 2026-03-11_meeting_APPROVED.md
+|   |   `-- group_contact_log_summary.md
+|   `-- management_plan/
+|       `-- management_plan.md
 |-- raw/
 |   |-- data-cleansing.Rmd
 |   |-- mean/
@@ -29,31 +43,38 @@ ST422_Personal_Portfolio_Yueran_Wang/
 |       |-- outlier_summary.csv
 |       `-- outlier_review.csv
 |-- src/
-|   |-- modeling_gls_ar1.R
-|   |-- model_comparison.R
-|   |-- model_diagnostics.R
-|   |-- robustness_checks.R
-|   |-- model_thresholds.R
-|   |-- plot_eda_annotated_series.R
-|   |-- plot_eda_warming_rate_curve.R
-|   |-- plot_eda_distribution_checks.R
-|   |-- plot_eda_rolling_variability.R
-|   |-- model_plot_baseline_shift_gls_ar1.R
-|   |-- model_plot_long_run_trend_gls_ar1.R
-|   |-- model_plot_error_dependence_gls_ar1.R
-|   |-- model_plot_qq_diagnostics.R
-|   |-- model_plot_robustness.R
-|   |-- table_model_shift_results.R
-|   |-- table_model_trend_results.R
-|   |-- table_monitoring_framework.R
-|   `-- table_thresholds.R
+|   |-- models/
+|   |   |-- modeling_gls_ar1.R
+|   |   |-- model_comparison.R
+|   |   |-- model_diagnostics.R
+|   |   |-- model_thresholds.R
+|   |   `-- robustness_checks.R
+|   |-- plots/
+|   |   |-- eda/
+|   |   |   |-- plot_eda_annotated_series.R
+|   |   |   `-- plot_eda_warming_rate_curve.R
+|   |   `-- models/
+|   |       |-- model_plot_baseline_shift_gls_ar1.R
+|   |       |-- model_plot_error_dependence_gls_ar1.R
+|   |       |-- model_plot_long_run_trend_gls_ar1.R
+|   |       |-- model_plot_monitoring_thresholds.R
+|   |       |-- model_plot_qq_diagnostics.R
+|   |       `-- model_plot_robustness.R
+|   |-- tables/
+|   |   |-- table_model_shift_results.R
+|   |   |-- table_model_trend_results.R
+|   |   `-- table_monitoring_framework.R
+|   `-- utils/
+|       |-- eda_utils.R
+|       `-- table_utils.R
 |-- outputs/
 |   |-- figures/
 |   `-- tables/
 |-- reports/
 |   |-- cache/
-|   |-- ST422_Professional_Technical_report.Rmd
-|   `-- ST422_Professional_Technical_report.pdf
+|   |-- renv/
+|   |-- reports.Rmd
+|   `-- reports.pdf
 |-- cache/
 |-- renv/
 |   |-- activate.R
@@ -65,6 +86,8 @@ ST422_Personal_Portfolio_Yueran_Wang/
 |-- .Rprofile
 |-- .Rproj.user/
 |-- ST422_Personal_Portfolio_Yueran_Wang.Rproj
+|-- consultancy_portfolio_workshop_template.md
+|-- Brief_6.png
 |-- .RData
 `-- .Rhistory
 ```

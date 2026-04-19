@@ -1,7 +1,7 @@
 ---
 title: "ST422 Report: Central England Seasonal Temperature Change"
 author: "Team 3: Yueran Wang 2201370"
-date: "2026-04-01"
+date: "2026-04-17"
 geometry:
   - left=1.8cm
   - right=1.8cm
@@ -12,8 +12,8 @@ output:
     toc: true
     toc_depth: 3
     number_sections: true
-    pandoc_args:
-      - "--shift-heading-level-by=-1"
+    #pandoc_args:
+      #- "--shift-heading-level-by=-1"
 header-includes:
   - \usepackage{float}
   - \usepackage{placeins}
@@ -85,7 +85,7 @@ source(file.path("src", "tables", "table_model_shift_results.R"))
 source(file.path("src", "tables", "table_model_trend_results.R"))
 source(file.path("src", "models", "model_comparison.R"))
 source(file.path("src", "models", "model_thresholds.R"))
-source(file.path("src", "tables", "table_thresholds.R"))
+source(file.path("src", "plots", "models", "model_plot_monitoring_thresholds.R"))
 source(file.path("src", "tables", "table_monitoring_framework.R"))
 
 ```
@@ -100,6 +100,30 @@ source(file.path("src", "plots", "models", "model_plot_robustness.R"))
 
 \newpage
 
+## Contribution declaration
+
+**Summary of my main contributions**
+
+1. I produced the core EDA and modelling visualisations used to support both the technical interpretation and the client-facing narrative. The main evidence is in commits `ae12467`, `7811600`, `9d45e38`, and PR `#28`.
+2. I led the data analysis and modelling work for the project, including the baseline shift and long run trend analysis, the model comparison workflow, and the monitoring threshold framework. The main code evidence is in commits `027186d`, `5f33013`, and PR `#28`.
+3. I carried out the robustness and diagnostics work used to test whether the headline findings were stable to alternative specifications and unusual seasons, and I integrated those results into the report. The main code evidence is in commits `5f33013`, `9d45e38`, and PR `#28`.
+4. I managed the later versioned redevelopment of the `src` workflow, moving the project from earlier script based outputs to a modular structure organised into `models`, `plots`, `tables`, and `utils`, and then aligning the project files with that structure. The main evidence is in PR `#24`, commit `f0d1b71`, and the follow-up commits `5f33013`, `9d45e38`, `8104b71`, `1fcfee8`, and `5d25022`.
+
+**Items I reviewed or quality-assured**
+
+1. I reviewed the integration of plots, tables, utilities, and report outputs during the later consolidation of the repository structure. The main evidence is in commits `8104b71`, `1fcfee8`, and `5d25022`.
+2. I reviewed the consistency between the analytical outputs and the written report during the week 9 reporting update. The main evidence is in PR `#12`, commit `ec409c9`, and PR `#28`.
+
+**Evidence pointers**
+
+- Audit summary: 20 commits and 8 pull requests under `Yueran-Wang-Warwick`
+- Key pull requests: `#12 Yueran week9`, `#23 Update attendees' status for March 11 meeting`, `#28 Update for eda, modelling, and robustness check`
+- Key issues: `#5 Progress Update: EDA visualisation and baseline analysis`, `#8 Progress Update for week 7 by Yueran`
+- Key commits: `027186d`, `ae12467`, `7811600`, `f0d1b71`, `5f33013`, `9d45e38`, `8104b71`, `1fcfee8`, `5d25022`
+- Version management sequence for `src`: early visualisation and modelling work in `ae12467`, `7811600`, and `027186d`, restructuring activity in PR `#24` and commit `f0d1b71`, then modular redevelopment through `5f33013`, `9d45e38`, `8104b71`, and `1fcfee8`, with project level alignment in `5d25022`
+
+# Client report
+
 ## Executive summary
 
 **The client question**: The brief asked for an evidence-based view of how Central England temperatures have changed across the four seasons, and what those changes mean for internal planning. Three practical questions drove the work, covering whether recent decades are measurably warmer than an earlier generation, which seasons have changed the most, and what monitoring thresholds to use in seasonal briefings.
@@ -109,46 +133,27 @@ source(file.path("src", "plots", "models", "model_plot_robustness.R"))
 - Spring temperatures averaged roughly 1.1 degrees Celsius higher in the 1991 to 2020 period than in 1961 to 1990, the largest shift of the four seasons. Summer and autumn also show clear increases. Winter points in the same direction with a smaller and less certain shift (see Figure \@ref(fig:cr-model-shift-plot)).
 - Over the full historical record from 1879 to 2024, every season has been warming at a sustained long-run rate. All four seasons fall in the range of about 0.09 to 0.13 degrees Celsius per decade, with autumn warming fastest and summer warming slowest (see Figure \@ref(fig:cr-model-trend-plot)).
 - The pace of warming strengthened after around 1975. Warming rates estimated over the most recent decades are consistently higher than those calculated over the full historical record in every season (see Figure \@ref(fig:cr-eda-warming-rate-curve-plot)).
-- A seasonal monitoring framework has been defined, assigning any incoming season a status of Reference, Watch, Action, or Escalation based on how far that season sits from the 1991 to 2020 reference distribution (see Table \@ref(tab:cr-monitoring-thresholds-table)).
+- A seasonal monitoring framework has been defined, assigning any incoming season a status of Reference, Watch, Action, or Escalation based on how far that season sits from the 1991 to 2020 reference distribution (Figure \@ref(fig:cr-monitoring-thresholds-plot)).
 
-**Recommendation**: We recommend adopting the 1991–2020 period as the stand-alone reference baseline for seasonal planning and using the established normal seasonal range shown in Table \@ref(tab:cr-monitoring-thresholds-table) as the operating band for routine monitoring. This gives internal briefings a clear, ready-to-use decision rule for when an incoming season warrants attention and when it does not. Any season falling noticeably outside that range should be flagged for follow-up. Winter conclusions should be treated with marginally more caution than the other three seasons, as its estimated shift is less precisely determined.
+**Recommendation**: We recommend adopting the 1991-2020 period as the stand-alone reference baseline for seasonal planning and using the established normal seasonal range shown in Figure \@ref(fig:cr-monitoring-thresholds-plot) as the operating band for routine monitoring. This gives internal briefings a clear, ready-to-use decision rule for when an incoming season warrants attention and when it does not. Any season falling noticeably outside that range should be flagged for follow-up. Winter conclusions should be treated with marginally more caution than the other three seasons, as its estimated shift is less precisely determined.
 
-**Key uncertainties**: The broad direction of change is clear, but the exact size of that change is less certain for unusually extreme seasons. The statistical checks suggest that the main pattern is reliable, whilst also indicating that the uncertainty around the most exceptional seasons may be slightly larger than the reported ranges suggest. The evidence is based on seasonal averages for Central England as a whole, so a season that looks typical in the overall data could still contain shorter periods of unusually hot or cold weather. The monitoring thresholds should also be read as practical decision rules for internal briefings, which means that different threshold choices would lead to alerts being triggered at different rates.
+**Key uncertainties and Limitations**: The broad direction of change is clear, but the exact size of that change is less certain for unusually extreme seasons. The statistical checks suggest that the main pattern is reliable, whilst also indicating that the uncertainty around the most exceptional seasons may be slightly larger than the reported ranges suggest. The evidence is based on seasonal averages for Central England as a whole, so a season that looks typical in the overall data could still contain shorter periods of unusually hot or cold weather. The monitoring thresholds should also be read as practical decision rules for internal briefings, which means that different threshold choices would lead to alerts being triggered at different rates.
 
 ## Client brief and scope
 
-### What the client asked
-
 The brief requested a clear, evidence-based assessment of seasonal temperature change in Central England using the Met Office HadCET records. The practical goal was to support three linked planning decisions, covering whether a sustained shift in seasonal temperatures has taken place over recent decades, which seasons have changed the most and whether the change looks more like a gradual trend or a distinct step shift, and what metrics and thresholds to use for internal monitoring and communication.
 
-### What this analysis covers
+**What this analysis covers and not cover**: 
 
 The analysis uses HadCET seasonal temperature records from 1879 to 2024, covering mean, minimum, and maximum temperatures across winter, spring, summer, and autumn. The primary baseline comparison is between a recent 30-year reference period (1991 to 2020) and an earlier historical period (1961 to 1990). Long-run warming rates are estimated over the full historical window. A shorter 10-year window covering 2015 to 2024 is also used as a near-term signal to detect whether the most recent decade sits above the 30-year reference distribution.
 
-### What falls outside this scope
-
-This report does not analyse sub-regional variation within Central England. It works with seasonal-level temperature summaries, so short-duration events such as individual heatwaves or cold spells at a daily or weekly scale are not captured. It does not make projections about future temperature levels.
+This report does not analyse sub-regional variation within Central England. It works with seasonal-level temperature summaries, so short-duration events such as individual heatwaves or cold spells at a daily or weekly scale are not captured. It also does not make projections about future temperature levels.
 
 ## Data and context
 
-### Where the data comes from
+The analysis draws on three official seasonal temperature series from Met Office (2025), *Seasonal Mean, Minimum and Maximum Central England Temperature (HadCET) series* v2.1.0.0, NERC EDS Centre for Environmental Data Analysis, <doi:10.5285/ca43505702fa4eeeba4b65f1ce2c1e6a>, covering seasonal mean, minimum, and maximum temperatures for the Central England region. Each series provides one value per season per year across a very long historical span. The mean series extends back to 1659, whilst the minimum and maximum series each begin in 1878. Because comparing all three temperature types requires overlapping records, all quantitative analysis in this report uses the shared period from 1879 to 2024.
 
-The analysis draws on three official seasonal temperature series from the Met Office HadCET archive (v2.1.0.0), covering seasonal mean, minimum, and maximum temperatures for the Central England region. Each series provides one value per season per year across a very long historical span. The mean series extends back to 1659, whilst the minimum and maximum series each begin in 1878. Because comparing all three temperature types requires overlapping records, all quantitative analysis in this report uses the shared period from 1879 to 2024.
-
-### What the data shows
-
-```{r cr-eda-annotated-series-plot, fig.width=9, fig.height=3.5, fig.cap="Annual HadCET seasonal temperatures by season, with rolling 30-year means."}
-p_eda_annotated <- make_eda_annotated_series_plot(save_plot = TRUE)
-p_eda_annotated
-```
-
-\FloatBarrier
-
-Figure 1 shows four panels, one for each season. In each panel, the faint dots represent the raw temperature recorded in each individual year, and the coloured lines trace the 30-year running average for mean, minimum, and maximum temperature. The two shaded bands mark the older reference window (1961 to 1990) and the more recent one (1991 to 2020). In every panel, the running average lines rise clearly from left to right, with the upward movement becoming steeper from the 1970s onward, and both shaded windows sit visibly above the temperature levels in the early part of the record. This consistent pattern across all four seasons establishes that the changes described in Section 4 are part of a broad, sustained process and are not the product of one or two unusual years.
-
-### A note on the data
-
-Because each data point summarises a full three-month season, shorter events within that period are not separately visible. A particularly hot fortnight in August, for instance, would contribute to the summer average but would not appear as an individual observation. A small number of historically exceptional seasons are present in the data, including winter 1963 and summer 1976. These were retained in the analysis, and later checks confirmed that they do not drive any of the headline results, so there is no need to treat them as special cases in the monitoring framework.
+The main data quality issue is structural rather than random. The first winter observation is unavailable because a winter value requires the previous December. The series are also regional seasonal summaries, so they smooth over short extreme episodes and do not show variation within Central England. Any measurement uncertainty in such a long historical record is more likely to affect precision than direction, which means the results are most useful for judging broad seasonal change rather than fine local detail.
 
 ## Findings
 
@@ -171,7 +176,7 @@ monitoring_thresholds_10 <- compute_monitoring_thresholds(recent_start = 2015, r
 
 ### Recent decades are warmer than a generation ago
 
-Every season and every temperature type recorded a higher average in the 1991 to 2020 period than in 1961 to 1990. Spring shows the largest increase, with its mean temperature rising by roughly 1.1 degrees Celsius. Summer and autumn also show clear upward shifts across mean, minimum, and maximum temperature. Winter is positive across all three temperature types, whilst its magnitude is harder to pin down with precision.
+Recent decades were warmer than a generation ago in every season and across all three temperature measures. Spring shows the largest increase, with its mean temperature rising by roughly 1.1 degrees Celsius. Summer and autumn also show clear upward shifts across mean, minimum, and maximum temperature. Winter is positive across all three temperature types, whilst its magnitude is harder to pin down with precision.
 
 ```{r cr-model-shift-plot, fig.width=8, fig.height=3, fig.cap="GLS AR(1) baseline shift estimates with 95\\% intervals by season and temperature type."}
 p_model_shift <- make_model_shift_plot(model_results$shift, save_plot = TRUE)
@@ -180,11 +185,11 @@ p_model_shift
 
 \FloatBarrier
 
-Figure 2 has four rows, one for each season, with three dots per row showing the estimated temperature increase for mean, minimum, and maximum. The horizontal axis shows the size of that increase in degrees Celsius, and the horizontal bars through each dot show the range of plausible values around the estimate. Every dot sits to the right of zero, confirming that all twelve season-temperature combinations were warmer in 1991 to 2020 than in 1961 to 1990. Spring's dots sit furthest right, and the bars for spring, summer, and autumn lie entirely in positive territory, whilst for winter the bars extend back close to zero, which is why the winter finding carries more caution than the other three seasons.
+Figure 2 has four rows, one for each season, with three dots per row showing the estimated temperature increase for mean, minimum, and maximum. The horizontal axis shows the size of that increase in degrees Celsius, and the horizontal bars through each dot show the range of plausible values around the estimate. Every dot sits to the right of zero, confirming that all twelve season-temperature combinations were warmer in 1991 to 2020 than in 1961 to 1990. Spring's dots sit furthest right, and the bars for spring, summer, and autumn lie entirely in positive territory, whilst for winter the bars extend back close to zero, which is why the winter finding carries more caution than the other three seasons. The practical implication is that planning assumptions based on the older 1961 to 1990 baseline now understate current seasonal conditions, especially in spring.
 
 ### Warming has been sustained across the whole historical record
 
-The full record from 1879 to 2024 shows that warming has been a persistent feature in all four seasons, not a recent development. Estimated long-run warming rates range from about 0.09 degrees Celsius per decade for summer to about 0.13 degrees per decade for autumn. Accumulated over 145 years, those rates correspond to total seasonal warming of roughly 1.3 to 1.9 degrees Celsius. All twelve combinations of season and temperature type give a positive long-run rate, with no exceptions.
+Warming has been sustained across the whole historical record rather than appearing only in the most recent decades. Estimated long-run warming rates range from about 0.09 degrees Celsius per decade for summer to about 0.13 degrees per decade for autumn. Accumulated over 145 years, those rates correspond to total seasonal warming of roughly 1.3 to 1.9 degrees Celsius. All twelve combinations of season and temperature type give a positive long-run rate, with no exceptions.
 
 ```{r cr-model-trend-plot, fig.width=8, fig.height=3, fig.cap="GLS AR(1) long-run warming rates with 95\\% intervals by season and temperature type."}
 p_model_trend <- make_model_trend_plot(model_results$trend, save_plot = TRUE)
@@ -193,11 +198,11 @@ p_model_trend
 
 \FloatBarrier
 
-Figure 3 follows the same layout as Figure 2, but the horizontal axis now shows the average rate of warming per decade over the full 1879 to 2024 period. The key difference from Figure 2 is that every bar in Figure 3 sits entirely to the right of zero, including winter, which in Figure 2 was the one uncertain case. Autumn tends to sit furthest right and summer furthest left, reflecting the seasonal ranking in the long-run rates. The clear separation of all bars from zero confirms that the warming pattern is a genuine long-run feature and is not simply a consequence of the particular 30-year windows chosen for comparison.
+Figure 3 follows the same layout as Figure 2, but the horizontal axis now shows the average rate of warming per decade over the full 1879 to 2024 period. The key difference from Figure 2 is that every bar in Figure 3 sits entirely to the right of zero, including winter, which in Figure 2 was the one uncertain case. Autumn tends to sit furthest right and summer furthest left, reflecting the seasonal ranking in the long-run rates. The clear separation of all bars from zero confirms that the warming pattern is a genuine long-run feature and is not simply a consequence of the particular 30-year windows chosen for comparison. The practical implication is that the client should treat the observed shift as a persistent change in background conditions, not as a short-lived fluctuation that can be ignored.
 
 ### The pace of warming strengthened from the mid-1970s
 
-The rate of warming has not been constant across the historical record. Warming rates moved into clearly positive territory from around 1975 onward across all four seasons and have remained there. Around 2010, rates in several seasons eased back slightly from their peak, but stayed positive. This acceleration into the post-1975 period is why the 1991 to 2020 reference window sits at a noticeably higher level than what preceded it.
+Warming rates moved into clearly positive territory from around 1975 onward across all four seasons and have remained there. Around 2010, rates in several seasons eased back slightly from their peak, but stayed positive. 
 
 ```{r cr-eda-warming-rate-curve-plot, fig.width=8, fig.height=3.5, fig.cap="Rolling 30-year warming rates by season."}
 p_eda_rate <- make_eda_warming_rate_curve_plot(save_plot = TRUE)
@@ -206,68 +211,47 @@ p_eda_rate
 
 \FloatBarrier
 
-Figure 4 shows one panel per season, with time on the horizontal axis and the estimated warming rate within each trailing 30-year period on the vertical axis. Positive values mean that period was warming, negative values reflect a temporary cooling phase within the window. The lines for all three temperature types cross into positive territory and stay there from around 1975 to 1990 onward. Winter shows the deepest dip into negative rates around 1950, which explains why its long-run average in Figure 3 is lower than autumn's despite both finishing clearly positive by the present. The slight easing of rates after about 2010 is why the 10-year reference window (2015 to 2024) is useful as a leading check on whether current seasons are still tracking at, or above, the primary 30-year reference level.
+Figure 4 shows one panel per season, with time on the horizontal axis and the estimated warming rate within each trailing 30-year period on the vertical axis. Positive values mean that period was warming, negative values reflect a temporary cooling phase within the window. The lines for all three temperature types cross into positive territory and stay there from around 1975 to 1990 onward. Winter shows the deepest dip into negative rates around 1950, which explains why its long-run average in Figure 3 is lower than autumn's despite both finishing clearly positive by the present. The slight easing of rates after about 2010 is why the 10-year reference window (2015 to 2024) is useful as a leading check on whether current seasons are still tracking at, or above, the primary 30-year reference level. The practical implication is that routine monitoring should not rely on a single long baseline alone, because a shorter recent window provides an earlier signal when conditions are continuing to shift.
 
 ### A monitoring framework is ready to use
 
-A practical monitoring framework has been built from the 1991 to 2020 reference distribution. For each of the twelve combinations of season and temperature type, three threshold values are defined from that distribution. P10 marks the lower boundary of the typical range, P50 is the midpoint used as the central reference for briefings, and P90 marks the upper boundary. Table 1 reports all of these for both the 30-year and the 10-year (2015 to 2024) windows side by side, making it straightforward to see whether the most recent decade already sits above the primary reference level.
+A practical monitoring framework is ready to use for internal seasonal briefings. Figure \@ref(fig:cr-monitoring-thresholds-plot) shows the usual recent range for each season and temperature type under both the main 30 year reference period and the more recent 10 year period. This range excludes the coolest 10 per cent and the warmest 10 per cent of recent seasons, so values outside it can be treated as unusually cool or unusually warm in relation to the recent baseline. That makes it easier to judge whether the newer period is already sitting above the main planning baseline.
 
-```{r cr-monitoring-thresholds-table}
-thresholds_combined <- make_monitoring_thresholds_comparison_table(
+```{r cr-monitoring-thresholds-plot, fig.width=8.5, fig.height=3, fig.cap="Seasonal monitoring ranges from the 30-year and 10-year reference windows"}
+p_cr_monitoring <- make_monitoring_threshold_plot(
   monitoring_thresholds,
-  monitoring_thresholds_10
+  monitoring_thresholds_10,
+  save_plot = TRUE
 )
-
-knitr::kable(
-  thresholds_combined,
-  caption = "Seasonal monitoring thresholds from the 30-year window (1991 to 2020) and the 10-year window (2015 to 2024) (degC).",
-  booktabs = TRUE,
-  linesep = ""
-) |> kableExtra::kable_styling(latex_options = "HOLD_position")
+p_cr_monitoring
 ```
 
 \FloatBarrier
 
-Any incoming season can immediately be assigned one of four status levels by comparing its observed value against Table 1. A season within P10 to P90 is **Reference** status, indicating conditions that fall within the established range of the 1991 to 2020 baseline. A single season outside P10 or P90 is **Watch** status, flagged for tracking in the next briefing. Two consecutive seasons outside the reference range, or a particularly large single-season breach, triggers **Action** status, calling for escalation with a seasonal impact note. If at least two of the three temperature metrics reach Action status in the same season, the framework triggers **Escalation**, prompting a cross-team planning discussion.
+Any incoming season can be assigned one of four status levels by comparing its observed value with the usual recent range shown in Figure \@ref(fig:cr-monitoring-thresholds-plot). A season that falls within that range is **Reference** status, which means conditions remain within the recent norm. A single season outside that range is **Watch** status and should be flagged for follow up in the next briefing. Repeated breaches, or a particularly large single breach, move the season to **Action** status and call for an escalation note. If at least two of the three temperature measures reach Action status in the same season, the framework moves to **Escalation** and triggers a wider planning discussion. The practical implication is direct, the client can use this framework now to decide when a season should simply be noted, when it should be monitored more closely, and when it should trigger a planning response.
 
-## Uncertainty and limitations
+## Limitations, Recommendations and Future work
 
-### Where the evidence is less certain
+The overall direction of change is clear, but some parts of the picture are more certain than others. Winter shows a relatively weaker recent baseline signal than spring, summer, and autumn, so winter specific decisions should be made with slightly more caution. The statistical checks also suggest that the main pattern is reliable, whilst indicating that uncertainty may be somewhat larger for the most unusual seasons than the reported ranges alone imply. In addition, the evidence is based on seasonal averages for Central England as a whole, so it does not show shorter extreme episodes within a season or differences between smaller local areas.
 
-Winter is the season where the analysis provides the least precise picture of the recent baseline shift. Its long-run trend is clearly positive, but for the two-window comparison the range of plausible values extends close to zero, so the magnitude of winter's recent shift carries more uncertainty than spring, summer, or autumn. The monitoring thresholds in Table 1 are a practical choice, not a fixed scientific optimum. P10 and P90 were selected because they flag genuinely uncommon events without generating alerts so frequently that the framework loses its signal value, and different threshold settings would produce different alert frequencies.
+**What the additional checks show**: Additional checks were used to test whether the main findings depended too heavily on one modelling choice or a small number of unusual years. The results were rechecked using alternative model forms and by removing a small set of especially extreme seasons. These checks did not change the main conclusion. The evidence still supports warming across all four seasons, and the case for updating planning benchmarks remains unchanged. The main effect of these checks was on precision rather than direction.
 
-### What this analysis does not capture
+**What would reduce uncertainty further**: Uncertainty would be reduced by using data with finer time and space detail. Monthly or local area data would show whether changes seen in the seasonal regional averages are also being driven by shorter extreme episodes or by stronger change in particular parts of Central England. 
 
-The seasonal data does not show what happens within a season. A summer that sits within the P10 to P90 range on the seasonal average could still contain individual weeks of conditions that fall well outside normal experience. All conclusions describe conditions at the Central England regional scale and do not characterise temperature change at any specific site within the region.
+Three recommendations follow from the analysis. First, the client should adopt the 1991 to 2020 period as the standard reference baseline for internal seasonal planning, because the older 1961 to 1990 baseline no longer reflects current conditions. Second, the client should use the monitoring framework in Figure \@ref(fig:cr-monitoring-thresholds-plot) in routine seasonal briefings, so that each season can be judged against a clear recent reference range and escalated when needed. Third, spring and autumn should receive the highest planning priority, because spring shows the largest recent shift relative to the older baseline, whilst autumn has the strongest long run warming rate. These actions should be applied consistently across internal reporting and seasonal review so that briefing messages remain aligned. The framework should be used as an early warning tool for briefing and review, and winter results should be interpreted with slightly more caution than those for the other seasons.
 
-### What would change these conclusions
-
-The direction of warming in all four seasons is well supported and would not be reversed by any plausible adjustment to the analysis. The main risk is on precision, particularly for winter. The statistical approach here assumes a relatively stable error structure across the full record, whilst Figure 4 shows that warming rates have themselves been changing over time. If the true error structure is more complex, some stated uncertainty ranges, especially for winter, may be slightly narrower than they should be. This does not affect the case for updating planning benchmarks, but it means winter-specific decisions should carry a small additional margin of caution.
-
-## Recommendations and next steps
-
-### Immediate actions
-
-Updating all internal planning benchmarks to the 1991 to 2020 reference window is the most immediate priority. Any seasonal target or assumption currently expressed in terms of the 1961 to 1990 climate is benchmarked against conditions that were roughly 0.6 to 1.1 degrees Celsius cooler depending on the season, and this gap will widen as the long-run trend continues. Adopting the four-level threshold framework in Table 1 for the next seasonal briefing cycle requires no further analysis, since the thresholds are already computed and the status levels are already defined.
-
-### Priorities by season
-
-Spring requires the earliest attention because its recent mean shift of roughly 1.1 degrees Celsius is the largest of the four seasons, meaning plans calibrated against the old baseline are furthest from current spring conditions. Autumn has the fastest long-run warming rate at around 0.13 degrees Celsius per decade, making it the season most likely to continue drifting upward over a five to ten year planning horizon. Winter should remain under monitoring but does not yet call for urgent revision of planning assumptions, given that the short-term evidence for its recent shift is the least certain of the four seasons.
-
-### Next steps
-
-The first operational use of the monitoring framework should compare the most recently completed season against the thresholds in Table 1 and assign a status level. A useful secondary check at that stage is to compare the 10-year P50 values against the 30-year P50 values in Table 1. Where the 10-year midpoint already sits above the 30-year one, the organisation is routinely experiencing conditions in the upper half of the reference distribution, which reinforces the case for planning revision. If closer monitoring of within-season conditions becomes necessary, extending the analysis to monthly resolution would be the natural next step.
+The next step in the short term is to apply the framework to the most recently completed season and assign a status level for each temperature measure. The next step over the longer term is to extend the analysis to data with finer time or spatial detail. Monthly data would help identify whether seasonal change is being driven by shorter extreme episodes, whilst more local data would show whether some parts of Central England are changing faster than others.
 
 \newpage
+
+# Technical Report
 
 ## Technical Abstract
 
 This report addresses the client question of whether Central England seasonal temperatures have shifted in recent decades, which seasons show the strongest change, and which monitoring thresholds should guide internal planning. Using Met Office HadCET seasonal mean, minimum, and maximum series (v2.1.0.0), the analysis combines EDA with season-metric specific GLS models under AR(1) errors to estimate baseline shifts (1991 to 2020 vs 1961 to 1990) and long-run trends (1879 to 2024). The headline conclusion is consistent across methods. Recent shifts are positive across all season-metric combinations, spring shows the largest baseline increases, winter is the least precise baseline case, and long-run trends are positive in all 12 combinations with post-1975 acceleration evident in sensitivity checks.
 The main limitations are simplified dependence modelling, visible winter-tail residual deviation, heuristic monitoring thresholds, and aggregation to seasonal regional series. These were handled by comparing OLS, AR(1), and AR(2) specifications, checking residual diagnostics directly, running segmented-trend and influential-year robustness checks, and presenting threshold rules as operational screening triggers rather than fixed optimal policy cut-offs.
 
-## Problem Definition and Decision Framework
-
-### Client Decision Context, Scope and Estimands
+## Client Decision Context, Scope and Estimands
 
 The client requires decision-ready evidence on three linked questions, whether recent seasonal temperatures have shifted relative to earlier baselines, which seasons show the strongest changes and in what form, and which monitoring metrics and thresholds should guide internal planning.
 The analysis targets the HadCET Central England seasonal series (Midlands representation), with year as the unit of analysis and seasonal mean, minimum, and maximum temperature (degC) as primary outcomes. For cross-metric comparability, the core window is 1879 to 2024.
@@ -631,7 +615,7 @@ Seasonal mean is used as the primary monitoring metric, and two baseline windows
 
 P10 and P90 are used as the reference band boundaries. Each marks the outer 10 per cent of the reference distribution, so a season falling below P10 or above P90 is a genuinely uncommon event relative to the 1991 to 2020 baseline, occurring about once in ten seasons under stable conditions. This frequency is low enough to carry a clear signal but common enough to remain sensitive to gradual change.
 
-Table \@ref(tab:monitoring-thresholds-table) reports P10, P50 (as reference), and P90 for each season-metric combination from the 30-year and 10-year reference windows. A consistent upward shift in the 10-year values relative to the 30-year values would confirm that the most recent decade already sits above the primary reference distribution, making the 30-year P90 threshold increasingly likely to be exceeded in coming seasons. Therefore, a three-level status classification is used for planning purposes:
+Figure \@ref(fig:monitoring-thresholds-plot) reports the P10 to P90 range for each season-metric combination from the 30-year and 10-year reference windows. A consistent upward shift in the 10-year band relative to the 30-year band would confirm that the most recent decade already sits above the primary reference distribution, making the 30-year P90 threshold increasingly likely to be exceeded in coming seasons. Therefore, a three-level status classification is used for planning purposes:
 - **Reference**: Oservation within P10 to P90. Continue routine monitoring.
 - **Watch**: Single-season value outside P10 or P90. Flag in briefing and track next season.
 - **Action**: Two consecutive seasonal breaches beyond P10 or P90, escalate with a seasonal impact note.
@@ -641,18 +625,13 @@ monitoring_thresholds     <- compute_monitoring_thresholds(recent_start = 1991, 
 monitoring_thresholds_10  <- compute_monitoring_thresholds(recent_start = 2015, recent_end = 2024)
 ```
 
-```{r monitoring-thresholds-table}
-thresholds_combined <- make_monitoring_thresholds_comparison_table(
+```{r monitoring-thresholds-plot, fig.width=8.5, fig.height=4, fig.cap="Seasonal P10 to P90 monitoring ranges from the 30-year and 10-year reference windows by season and temperature type."}
+p_monitoring_thresholds <- make_monitoring_threshold_plot(
   monitoring_thresholds,
-  monitoring_thresholds_10
+  monitoring_thresholds_10,
+  save_plot = TRUE
 )
-
-knitr::kable(
-  thresholds_combined,
-  caption = "Seasonal monitoring thresholds from the 30-year window (1991 to 2020) and the 10-year window (2015 to 2024) (degC).",
-  booktabs = TRUE,
-  linesep = ""
-) |> kableExtra::kable_styling(latex_options = "HOLD_position")
+p_monitoring_thresholds
 ```
 
 \FloatBarrier
@@ -691,21 +670,597 @@ It was not chosen here because the report required a common set of results that 
 
 ### Simplifications Planned for the Client-Facing Report
 
-[[PENDING_CLIENT_TRANSLATION]]
+The client-facing report simplifies the technical material in three main ways. First, it translates model specifications and diagnostics into plain statements about change, consistency, and decision relevance rather than presenting equations or dependence parameters. Second, it reports a small number of headline seasonal comparisons and monitoring rules instead of the full set of technical estimates and robustness outputs. Third, it presents uncertainty in operational terms by explaining what should be treated with more caution and what would justify follow-up, rather than emphasising the statistical details of model checking. These simplifications are acceptable because they do not alter the direction of the findings, the relative ranking of seasons, or the practical recommendations that follow from the evidence. They reduce technical detail, but they do not remove any information that would materially change the client decision.
 
 ### Repository Structure, Run Sequence, Environment, and Determinism
 
-[[PENDING_REPRODUCIBILITY: finalise after code rerun and dependency lock verification.]]
+**Github Repository**: https://github.com/Yueran-Wang-Warwick/ST422-personal-portfolio-Yueran-Wang.git
+
+`README.md` (run order), `.Rprofile`/`reports/.Rprofile` (project library activation), and `renv.lock` (dependency versions) ensure the reproducibility. 
+
+The execution sequence is fixed: start in the root directory, run `raw/data-cleansing.Rmd` to rebuild `processed/`, then render `reports/reports.Rmd`. Data are read from local `raw/` HadCET files, environment management uses `renv` (R 4.4.1). Determinism is high because the analysis pipeline does not use random sampling/simulation, which reruns the same outputs for every run.
 
 ### Output Inventory and Remaining Reproducibility Risks
 
-[[PENDING_REPRODUCIBILITY]]
+Outputs are saved with stable names in fixed folders: figures in `outputs/figures/`, tables in `outputs/tables/`, and the compiled report at `reports/reports.pdf`. Always render from project root, run `renv::restore()` before rerun on a new machine/session, and clear `cache/` plus `reports/cache/` when outputs appear stale or after dependency updates. These controls are sufficient for full audit replay under the current portfolio scope.
 
 \newpage
 
-## Appendix: Supplementary EDA Diagnostics
+## Appendix: Individual reflection
+
+### Key judgement calls you made
+
+My main analytical judgement was to combine a recent baseline comparison with a long run trend analysis. I chose this structure because the client needed both a direct comparison with an older benchmark and a defensible account of whether the observed change formed part of a longer pattern. A more complex model might have described the process in greater detail, but it would have been harder to explain and defend in a consultancy context.
+
+My main communication judgement was to organise the client report around four findings, each linked to one figure and one practical implication. I chose that structure because the brief was decision focused. It required clear conclusions about benchmarks, seasonal priorities, and monitoring rather than a full account of every analytical step.
+
+### Trade-offs
+
+One trade-off arose from the data structure itself. The mean series extends further back than the minimum and maximum series, so I restricted the cross-metric analysis to their shared period from 1879 to 2024. This meant giving up some additional long run context from the mean series, but it avoided making comparisons across unequal historical windows.
+
+I also used an AR(1) specification as the main working model and presented the monitoring thresholds as practical decision rules. This improved interpretability and kept the report auditable, but it also meant accepting a simpler dependence structure than the climate process may fully support. I managed that risk by reporting diagnostics, comparing alternative models, and checking that the main conclusions were stable.
+
+### What you learned and what you would do differently
+
+This project taught me that consultancy quality depends on communication as much as on technical correctness. The most useful results were not the most detailed ones. They were the results that could be linked directly to a planning decision and defended under challenge. I also learned that uncertainty has to be translated into decision language rather than left in technical terms.
+
+If I were doing the project again, I would separate the client and technical narratives earlier in the drafting process and test the monitoring section sooner with non-technical readers. That part of the report required the most revision, which showed me that clarity and defensibility need to be built into the analysis from the start.
+
+
+## Appendix: Evidence of group contact and professional working
+
+**Contact log: `2026-02-17_meeting_APPROVED.md`**
+
+**Minutes of Meeting**
+
+**Project:** Client Brief 6  
+**Group:** Group 3  
+**Meeting type:** Weekly sync  
+**Date:** 2026/02/17  
+**Time:** 15:00-17:00  
+**Location/Platform:** FAB collection space\
+**Minute-taker:** Shan Xue
+
+**1. Attendees**
+
+-   Alex Zheng (present)
+-   Lewis Parry (present)
+-   Yueran Wang (present)
+-   Yunting Chen (present)
+-   Priya Kumar (present)
+-   Shan Xue (present)
+
+**2. Agenda**
+
+1.  Confirm deliverables required and agree on client brief selection.  
+2.  Assigning work for each individual this week.  
+3.  Find questions for clients.  
+4.  Decide to use GitHub for issue board/task track.  
+
+**3. Key Decisions Made**
+
+**Decision:** Assign weekly responsibilities to individual team members.  
+**Rationale:** To ensure accountability and timely completion of Deliverables 1-4 before Week 7 Monday 0900.  
+**Implication:** Clear ownership established for each required output:  
+- Alex - upload `SELECTION.md`  
+- Yueran - upload scope note and allocate roles  
+- Lewis - complete the management plan  
+- Priya - create initial `README.md`  
+- Yunting - maintain action log and approved minutes  
+- Shan - draft meeting minutes  
+
+**4. Discussion notes**
+
+1. Confirmed required outputs for Week 7: SELECTION.md, management plan (3 formats), updated shared space, repository structure and README.  
+2. Decided to create branch per issue, then ask others to review the code after pushing.
+
+**5. Action log**
+
+| Action | Owner | Deadline | Status | Evidence Pointer |
+|--------|--------|----------|--------|------------------|
+| Create repo structure and setup contact log | Lewis Parry | 2026-02-17 | Completed | Repository initialised (main branch) |
+| Sync raw data to repository and upload files | Yueran Wang | 2026-02-17 | Completed | commit dd938c6e082c6a9ba7c2bc03056412beaf0c695c | 
+| Create GitHub issue board | Lewis Parry | 2026-02-20 | Completed | GitHub Issues |
+| Upload draft minutes | Shan Xue | 2026-02-17 | Completed | `Minutes/2026-02-17_meeting_DRAFT.md`
+| Complete action log and approved minutes | Yunting Chen | 2026-02-20 | Completed | `Minutes/2026-02-17_meeting_APPROVED.md` |
+| Upload `SELECTION.md` | Alex Zheng | 2026-02-20 | Completed | `SELECTION.md` |
+| Upload `Scope_Notes.md` and `Role_Allocation.md` | Yueran Wang | 2026-02-20 | Completed | `Scope_Notes.md`, `Role_Allocation.md` |
+| Upload management plan (`.md`, `.html`, `.pdf`) | Lewis Parry | 2026-02-20 | Completed | `management_plan.md` |
+| Create initial `README.md` | Priya Kumar | 2026-02-20 | Completed | `README.md` |
+
+**6. Risks / blockers / dependencies**
+
+-   None identified at this stage.
+
+**7. Reproducibility / QA checks**
+
+1. Agreed branch-per-issue workflow.  
+2. All merges require peer review.
+
+**8. Questions for Client**
+
+1. Are there specific temperature metrics that should be prioritised?  
+2. In practical decision terms, what outcome would you consider most useful from this analysis?  
+3. Do you have a preferred historical baseline period for comparison, or should we propose one based on statistical stability?
+
+**9. Next meeting**
+
+**Date/time:** Week 7 Monday  
+**Location/Platform:** In person  
+**Provisional agenda:** 
+1. Finalise questions for client.  
+2. Update action log and assign Week 7 tasks.
+---
+
+**Contact log: `2026-02-23_meeting_APPROVED.md`**
+
+**Minutes of Meeting**
+
+**Project:** Brief 6  
+**Group:** Group 3  
+**Meeting type:** Weekly sync  
+**Date:** 2026/02/23  
+**Time:** 10:37-10:50, 11:30-11:55  
+**Location/Platform:** MB0.07  
+**Minute-taker:** Shan Xue
+
+**1. Attendees**
+
+- Alex Zheng (present)
+- Lewis Parry (present)
+- Yueran Wang (present)
+- Yunting Chen (present)
+- Priya Kumar (present)
+- Shan Xue (present)
+
+**2. Agenda**
+
+1.  Client requested meeting: interim progress.  
+2.  QA discussion with client.  
+3.  Action log evidence pointer structure  
+
+**3. Key Decisions Made**
+
+- **Decision 1:** The team will independently determine the most appropriate temperature metrics for modelling and justification.  
+  **Rationale:** The client has no preferred metric and expects evidence-based justification.  
+  **Implication:** Metric selection must be defensible, clearly documented, and supported by analysis.
+
+- **Decision 2:** The team will propose a statistically stable historical baseline period.  
+  **Rationale:** No preferred baseline was provided by the client.  
+  **Implication:** Baseline sensitivity analysis will be included in robustness checks.
+
+- **Decision 3:** Action log updates must include GitHub evidence links in the "Evidence Pointer" column after peer review.  
+  **Rationale:** To strengthen auditability and reproducibility.  
+  **Implication:** All completed actions must reference an Issue, PR, or commit link.
+
+**4. Discussion notes**
+
+**Q1.** Are there specific temperature metric that should be prioritised?   
+**A:** Client has no preference; we should choose appropriate metrics ourselves and justify with evidence.
+
+**Q2:** In practical decision terms, what outcome would be most useful from this analysis?    
+**A:** Most useful outcome aligns with the first point in the client brief; outputs must be robust and defensible. Client is relying on our
+analysis and expects it to stand up to scrutiny and answer likely follow-up questions.
+
+**Q3:** Do you have a preferred historical baseline period for comparison, or should we propose one based on statistical stability?  
+**A:** No preferred historical baseline period.
+
+**Q4.** Action log evidence pointer structure    
+**A:** After peer review, action log should be updated in the approved minute and the related GitHub link should be attached in the "pointer period" section.
+
+**5. Action log**
+
+| Action | Owner | Deadline | Status | Evidence Pointer |
+|--------|--------|----------|--------|------------------|
+| Data cleaning and validation | Alex Zheng | 2026-02-25 | Completed | `data/processed/data_max_cleaned.csv`, `data/processed/data_mean_cleaned.csv`, `data/processed/data_min_cleaned.csv` |
+| EDA visualisation and narrative integration | Yueran Wang | 2026-02-25 | Completed | `reports.Rmd` |
+| Upload draft minutes | Shan Xue | 2026-02-23 | Completed | `Minutes/2026-02-23_meeting_DRAFT.md` |
+| Complete action log and approved minutes | Yunting Chen | 2026-02-27 | Completed | `Minutes/2026-02-23_meeting_APPROVED.md` |
+| Peer review of data cleaning | Lewis Parry | 2026-02-27 | Completed | PR #6 reviewed and approved |
+| Peer review of EDA outputs | Yunting Chen | 2026-02-27 | Completed | PR #5 reviewed and approved |
+| Peer review of README file | Yunting Chen | 2026-02-27 | Completed | PR #7 reviewed and approved |
+| Peer review of Management plan | Alex Zheng | 2026-02-27 | Completed | `management_plan.md` |
+| Draft section titles and report structure | Lewis Parry | 2026-02-27 | Completed | Report outline draft |
+| Confidence statement (Client Q1) | Yueran Wang | 2026-02-28 | Completed | `client_meeting_Q1_brief6.md` |
+| Uncertainty and Bias Framing (Client Q2) | Shan Xue | 2026-02-28 | Completed | `client_meeting_q2_uncertainty.md` |
+| Robustness checks (Client Q3) | Priya Kumar | 2026-02-28 | Completed | ------- |
+
+**6. Risks / blockers / dependencies**
+
+- **Dependency:** Completion of peer review before merging modelling outputs or file change.  
+  **Due:** 2026-02-27  
+  **Status:** Open  
+
+**7. Reproducibility / QA checks**
+
+- [ ] Figures/tables regenerate without manual edits  
+- [ ] Peer review completed (link evidence)  
+
+**8. Next meeting**
+
+**Date/time:** Week 8 Monday  
+**Location/Platform:** MB0.07  
+**Provisional agenda:**   
+1. Present modelling results and robustness checks.  
+2. Confirm baseline selection rationale.  
+3. Review action log and QA evidence.
+---
+
+**Contact log: `2026-03-04_meeting_APPROVED.md`**
+
+**Minutes of Meeting**
+
+**Project:** Brief 6  
+**Group:** Group 3  
+**Meeting type:** Weekly sync  
+**Date:** 2026/03/04  
+**Time:** 13:30-15:00  
+**Location/Platform:** WA1.01  
+**Minute-taker:** Shan Xue
+
+**1. Attendees**
+
+- Alex Zheng (present)
+- Lewis Parry (present)
+- Yueran Wang (apologies)
+- Yunting Chen (present)
+- Priya Kumar (present)
+- Shan Xue (present)
+
+**2. Agenda**
+
+1.  Review questions form the client meeting on Monday (2026-03-02).  
+2.  Assign the report for this week.  
+3.  Review the current progress of the project and the code developed so far.  
+
+**3. Key Decisions Made**
+
+- **Decision:** Search for additional datasets or government sources related to the energy question mentioned in the client meeting.  
+  **Rationale:** Our current data cannot support answering the energy question. With the client's permission, we will carry out some additional research.  
+  **Implication:** We will spend some time this week, and possibly next week, searching for evidence that could support our conclusions.  
+
+**4. Discussion notes**
+
+**Q1.** Why is the temperature still increasing even though the UK is using cleaner energy, and should the UK return to older energy sources?  
+**A:** Global cumulative emissions are still increasing. Emissions depend on both energy demand and the carbon intensity of energy, and many countries still rely heavily on fossil fuels. Climate inertia also means that CO2 stays in the atmosphere for a long time and oceans absorb much of the excess heat, which can delay temperature changes. Therefore, returning to older energy sources would not solve the problem.
+
+**Q2.** What statistical methods are used in our analysis?  
+**A:** The client asked about the use of GLM. We agreed that the report should briefly explain the method so that it is easier for the client to understand.
+
+**Q3.** Can we use additional data to strengthen our conclusions and suggestions?  
+**A:** Yes. The team agreed to search for additional datasets or external sources that could help support our conclusions.  
+
+**5. Action log**
+
+| Action | Owner | Deadline | Status | Evidence Pointer |
+|--------|--------|----------|--------|------------------|
+| Investigate the energy question raised by the client | Alex Zheng | 2026-03-06 | Completed | `2026-03-02_client_briefing_meeting.docx` |
+| Upload draft minutes | Shan Xue | 2026-03-04 | Completed | `Minutes/2026-03-04_meeting_DRAFT.md` |
+| Complete action log and approved minutes | Yunting Chen | 2026-03-08 | Completed | `Minutes/2026-03-04_meeting_APPROVED.md` |
+| Complete next week client status report | Lewis Parry | 2026-03-06 | Completed | `Week9_client_status_report_part2.md` |
+| Complete next week client status report | Shan Xue | 2026-03-06 | Completed | `Week9_client_status_report_part1.md` |
+| Commenting code and clean run | Priya Kumar | 2026-03-16 | In progress | ------- |
+| Robustness sensitivity check | Yunting Chen | 2026-03-16 | In progress | ------- |
+| Analysis of effect of clean energy | Yueran Wang | 2026-03-06 | In progress | ------- |
+
+**6. Risks / blockers / dependencies**
+
+- **Risk:** The client may misinterpret the rise in temperature as evidence that clean energy is not effective and consider returning to older energy sources.  
+  **Due:** Next client meeting  
+  **Status:** Open
+
+- **Risk:** Seasonal results may be influenced by a small number of unusually hot or cold years.  
+  **Due:** After robustness checks  
+  **Status:** Open
+
+**7. Reproducibility / QA checks**
+
+- [ ] Figures/tables regenerate without manual edits  
+- [ ] Peer review completed (link evidence)  
+
+**8. Next meeting**
+
+**Date/time:** Week 9 Monday  
+**Location/Platform:** MB0.07  
+**Provisional agenda:**   
+---
+
+**Contact log: `2026-03-09_meeting_APPROVED.md`**
+
+**Minutes of Meeting**
+
+**Project:** Client Brief 6\
+**Group:** Team 3 **Meeting type:** Weekly sync **Date:** 2026-03-11
+**Time:** 13:30-14:57 **Location/Platform:** WA1.15A **Minute-taker:**
+Shan
+
+**1. Attendees**
+
+-   Yunting Chen (present)
+-   Yueran Wang (present)
+-   Alex Zheng (present)
+-   Shan Xue (present)
+-   Lewis Parry (present)
+-   Priya Kumar (present)
+
+**2. Agenda**
+
+1.  Go through notes from client meeting on Monday
+2.  Split the work for week 10 client report
+3.  Discussion of 'lack of work to distribute.'
+
+**3. Key decisions made**
+
+-   **Decision 1:** Defer the clean energy policy question for now\
+    **Rationale:** This question is outside the scope of the current
+    brief and was not requested by the client at this stage
+
+    **Implication:** We will address this topic in the presentation, if
+    needed, with appropriate supporting evidence and clear scope
+    boundaries.
+
+-   **Decision 2:** Assign at least two team members to each critical
+    task
+
+    **Rationale:** Following discussion with the lecturer, pairing team
+    members on key tasks will improve continuity, enable faster
+    handovers, and reduce delivery risk if availability changes.
+
+    **Implication:** Each task will have at least two members to ensure
+    coverage and timely progress.
+
+**4. Action log**
+
+| Action | Owner | Deadline | Status | Evidence Pointer |
+|----|----|----|----|----|
+| Code comment | Priya Kumar | 15/03/2026 | Not Started |  |
+| Update readme | Priya Kumar | 15/03/2026 | Not Started |  |
+| Robustness check | Yunting Chen | 15/03/2026 | Not Started |  |
+| Modelling | Yueran Wang | 15/03/2026 | Completed |  |
+| Week 10 client report | Shan Xue | 13/03/2026 | Completed |  |
+| Week 10 client report | Alex Zheng | 13/03/2026 | Not Started |  |
+| Week 10 client report | Lewis Parry | 13/03/2026 | Not Started |  |
+| Convert client report into prose | Lewis Parry | 13/03/2026 | Not Started |  |
+
+**5. Reproducibility / QA checks**
+
+-   [ ] Code comment
+-   [ ] Week 10 client report checking
+
+**File name suggestion:** `minutes_YYYY-MM-DD.md`
+
+---
+
+**Contact log: `2026-03-11_meeting_APPROVED.md`**
+
+**Minutes of Meeting**
+
+**Project:** Brief 6\
+**Group:** Group 3\
+**Meeting type:** Weekly sync\
+**Date:** 2026/03/11\
+**Time:** 13:30-15:00\
+**Location/Platform:** WA1.15A\
+**Minute-taker:** Shan Xue
+
+**1. Attendees**
+
+-   Alex Zheng (present)
+-   Lewis Parry (apologies)
+-   Yueran Wang (present)
+-   Yunting Chen (present)
+-   Priya Kumar (present)
+-   Shan Xue (present)
+
+**2. Agenda**
+
+1.  Review questions form the client meeting on Monday (2026-03-09).\
+2.  Assign the report for this week.
+
+**3. Key Decisions Made**
+
+-   **Decision 1:** Defer the clean energy policy question for now.\
+    **Rationale:** This question is outside the scope of the current brief and was not requested by the client at this stage.\
+    **Implication:** We will address this topic in the presentation, if needed, with appropriate supporting evidence and clear scope boundaries.
+
+-   **Decision 2:** Assign at least two team members to each critical task.\
+    **Rationale:** Following discussion with the lecturer, pairing team members on key tasks will improve continuity, enable faster handovers, and reduce delivery risk if availability changes.\
+    **Implication:** Each task will have at least two members to ensure coverage and timely progress.
+
+**4. Discussion notes**
+
+-   When writing for the client, the report should focus more on interpretation and conclusions, with less emphasis on technical or programming details.\
+-   The report should maintain a simple and consistent style suitable for non-expert readers, including clear plots and consistent formatting.\
+-   The robustness checks completed so far were viewed positively, but explanations should remain non-technical and easy to understand.
+
+**5. Action log**
+
+| Action | Owner | Deadline | Status | Evidence Pointer |
+|-------------|-------------|-------------|-------------|--------------------|
+| Convert client report into prose | Lewis Parry | 2026-03-16 | Completed | ------- |
+| Complete next week client report | Lewis Parry | 2026-03-13 | Completed | `ST422_Week10_Client_Update_part2.md` |
+| Complete next week client report | Alex Zheng | 2026-03-13 | Completed | `ST422_Week10_Client_Update_part1.md` |
+| Complete next week client report | Shan Xue | 2026-03-13 | Completed | `ST422_Week10_Client_Update_part3.md` |
+| Commenting code and clean run | Priya Kumar | 2026-03-16 | Completed | `reports.rmd` |
+| Update readme file | Priya Kumar | 2026-03-16 | Completed | `README.md` |
+| Robustness sensitivity check | Yunting Chen | 2026-03-16 | Completed | `reports.rmd` |
+| Main modelling | Yueran Wang | 2026-03-16 | Completed | `reports.rmd` |
+
+**6. Risks / blockers / dependencies**
+
+-   **Risk:** The client may misinterpret the rise in temperature as evidence that clean energy is not effective and consider returning to older energy sources.\
+    **Due:** Next client meeting\
+    **Status:** Open
+
+-   **Risk:** Seasonal results may be influenced by a small number of unusually hot or cold years.\
+    **Due:** After robustness checks\
+    **Status:** Open
+
+**7. Reproducibility / QA checks**
+
+-   [ ] Figures/tables regenerate without manual edits\
+-   [ ] Peer review completed (link evidence)
+
+**8. Next meeting**
+
+**Date/time:** Week 10 Monday\
+**Location/Platform:** MB0.07\
+**Provisional agenda:**
+
+
+
+
+- `appendix/group_contact_log/group_contact_log_summary.md` contains the consolidated group contact log with date, attendees, duration, agenda, actions, owners, deadlines, status, and evidence pointers. This is a summary only. Full meeting files are in `appendix/group_contact_log/`.
+- `appendix/audit_reports/individual_action_log.md` contains my individual actions undertaken and completed with task, dates, outputs, evidence links, and outcomes.
+
+Both summaries are compiled from approved meeting minutes in `appendix/group_contact_log/` and the audit export in `appendix/audit_reports/AUDIT_REPORT.html`.
+
+
+## Appendix: Management plan
+
+Use this appendix to show **how you planned and managed delivery**, not just what analysis you produced. Keep it evidence-based and practical.
+
+**Workplan and milestones**
+
+**Project Roadmap: Phases of Work**
+
+**Phase 1: Triage**
+
+**Clarify decision and scope**
+
+-   **Purpose**: Agree on scope and limitations.
+-   **Key Activities**:
+    -   Read project brief.
+    -   Confirm dataset (HadCET).
+    -   Define excluded variables.
+-   **Deliverables**: Signed-off `SELECTION.md` and scope notes.
+-   **Owner**: **Shan Xue** (Project Lead)
+-   **Deadline**: Week 6
+-   **Definition of Done**: Scope is formally agreed upon by all leads.
+
+**Phase 2: Data Readiness**
+
+**Ensure usable dataset**
+
+-   **Purpose**: Acquire and validate data.
+-   **Key Activities**:
+    -   Download HadCET v2.1.0.0.
+    -   Check for missing values.
+    -   Format dates and schema.
+-   **Deliverables**: Clean `.csv` file and data dictionary.
+-   **Owner**: **Alex Zheng** (Data Steward)
+-   **Deadline**: Week 7
+-   **Definition of Done**: Reproducible cleaning script runs without error.
+
+**Phase 3: Analysis**
+
+**Produce evidence**
+
+-   **Purpose**: Generate statistical findings.
+-   **Key Activities**:
+    -   Calculate 30-year baselines.
+    -   Run trend tests (e.g., Mann-Kendall).
+    -   Plot time series data.
+-   **Deliverables**: Draft figures and summary tables.
+-   **Owner**: **Yueran Wang** (Analysis Lead)
+-   **Deadline**: Week 8
+-   **Definition of Done**: All claims are supported by p-values or confidence intervals.
+
+**Phase 4: Interpretation & Reporting**
+
+**Write client output**
+
+-   **Purpose**: Translate statistics into business meaning.
+-   **Key Activities**:
+    -   Draft internal briefing.
+    -   Interpret trends vs. step-changes.
+-   **Deliverables**: Draft report (RMarkdown).
+-   **Owner**: **Lewis Parry** (Reporting Lead)
+-   **Deadline**: Week 9
+-   **Definition of Done**: Narrative aligns strictly with evidence; no over-claiming.
+
+**Phase 5: QA**
+
+**Make it defensible**
+
+-   **Purpose**: Verify correctness and reproducibility.
+-   **Key Activities**:
+    -   Conduct peer code review.
+    -   Verify figure labels and units.
+    -   Re-run full pipeline on a fresh machine.
+-   **Deliverables**: Final `report.html` and QA log.
+-   **Owner**: **Priya Kumar & Yunting Chen** (QA Leads)
+-   **Deadline**: Week 10
+-   **Definition of Done**: A fresh run reproduces identical outputs to the draft.
+
+**Milestones and deadlines**
+
+| Milestone | What it means | Why it matters | Due date (Est.) | Owner(s) | Status |
+|------------|------------|------------|------------|------------|------------|
+| **Scope agreed** | Brief selected, out-of-scope defined | Prevents scope creep | Week 6 | Shan Xue | **Done** |
+| **Data freeze** | Clean dataset version tagged | Stops moving targets | Week 7 (Mon) | Alex Zheng | **Done** |
+| **First figures** | Core plots/tables drafted | Enables narrative early | Week 8 | Yueran Wang | **Done** |
+| **Draft Report** | Full text draft ready | Reviews can begin | Week 9 | Lewis Parry | **Done** |
+| **Code Review** | Code checked for logic/style | Ensures correctness | Week 9 | Priya/Yunting | **Done** |
+| **Final QA sign-off** | Checklist complete | Confident submission | Week 10 | Priya/Yunting | **Done** |
+
+**Allocation of responsibilities**
+
+| Role | Responsibilities | Outputs owned | Primary | Backup |
+|---------------|---------------|---------------|---------------|---------------|
+| **Project Lead** | Keep plan on track; chair meetings; remove blockers | Minutes and task board | **Shan Xue** | Lewis Parry |
+| **Data Steward** | Data cleaning; data dictionary; versioning | Clean dataset and scripts | **Alex Zheng** | Yueran Wang |
+| **Analysis Lead** | Main modelling/summaries; method notes | Results tables/figures | **Yueran Wang** | Alex Zheng |
+| **Reporting Lead** | Client report and exec summary | Drafts and final text | **Lewis Parry** | Shan Xue |
+| **QA Lead** | Check claims, figures, reproducibility | QA checklist and log | **Priya Kumar, Yunting Chen** | Alex Zheng |
+
+**Risk register**
+
+| Risk (what could go wrong) | Likelihood (L/M/H) | Impact (L/M/H) | Mitigation (what you will do) | Owner | Status |
+|------------|------------|------------|------------|------------|------------|
+| **Scope creep** | M | H | Freeze scope in `SELECTION.md`; record out-of-scope items. | Shan Xue | Open |
+| **Data interpretation errors** | L | H | Peer review of statistical claims (check p-values/CIs). | Priya/Yunting | Open |
+| **Git merge conflicts** | M | M | Pull before push; communicate before editing same file. | Alex Zheng | Open |
+| **Late integration** | H | H | Set "First Figures" milestone early (Week 8). | Lewis Parry | Open |
+| **Reproducibility failure** | L | H | Run full pipeline on a fresh clone weekly. | Priya/Yunting | Open |
+
+**Quality assurance plan**
+
+**Data quality checks (Owner: Alex Zheng)**
+
+| Check | How it is performed | Pass/Fail rule | When run |
+|------------------|------------------|------------------|------------------|
+| **Missingness** | Scripted summary | Flag if key months are missing in recent decades | Each update |
+| **Duplicate check** | ID check on Year/Month | No duplicate time points | Each update |
+| **Range check** | Rule-based | Temps must be reasonable (e.g., -20°C to +40°C) | Each update |
+
+**Analysis robustness checks (Owner: Yueran Wang)**
+
+| Robustness check | Why it matters | What you change |
+|------------------------|------------------------|------------------------|
+| **Baseline Period** | Results depend on reference | Compare 1961-1990 w/ 1981-2010 |
+| **Trend Method** | Parametric assumptions | Compare Linear Regression w/ Mann-Kendall |
+| **Data Source** | Measurement artifacts | Check Min/Max trends vs Mean trends |
+
+**Review process (peer review, code review, figure checking)**
+
+**Suggested approach:**
+
+-   Schedule review as a milestone (not a last-minute activity).
+-   Use a simple checklist so reviewers know what "good" looks like.
+
+**Review process (peer review, code review, figure checking)**
+
+| Review type | What is reviewed | Reviewer(s) | Checklist / criteria used | How feedback is recorded | Date | Evidence link |
+|:----------|:----------|:----------|:----------|:----------|:----------|:----------|
+| **Code review** | Reproducibility, style, logic | **Shan Xue** | ; 1. No hard-coded paths; 2. MK-test logic correct | GitHub Pull Request (PR) comments | 03 Mar 2026 | <https://github.com/Yueran-Wang-Warwick/ST422-Team-3/pull/26#pullrequestreview-4058872496> |
+
+**Reproducibility check (Owner: Priya Kumar, Yunting Chen)**
+
+-   **Goal:** Run the full pipeline on a "clean" machine/account.
+-   **Command:** `rmarkdown::render("report/report.Rmd")`
+-   **Success Criteria:** Output HTML/PDF matches the submitted version exactly.
 
 ```{r renv-snapshot, eval=FALSE, include=FALSE}
 #renv::snapshot()
-
 ```

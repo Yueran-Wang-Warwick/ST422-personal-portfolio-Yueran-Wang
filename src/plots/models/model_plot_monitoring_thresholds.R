@@ -27,19 +27,18 @@ make_monitoring_threshold_plot <- function(thresholds_30, thresholds_10, save_pl
 
   p <- ggplot(plot_df, aes(
     x      = season_label,
-    ymin   = p10,
-    ymax   = p90,
     colour = metric_label
   )) +
-    geom_linerange(
+    geom_errorbar(
+      aes(ymin = p10, ymax = p90),
       position  = position_dodge(width = 0.45),
-      linewidth = 1.4,
-      lineend   = "round"
+      width     = 0.18,
+      linewidth = 0.7
     ) +
     facet_wrap(~ window_label, nrow = 1) +
     scale_colour_manual(values = metric_colours, name = NULL) +
     labs(
-      title = "Seasonal Temperature Reference Ranges by Metric",
+      title = "Seasonal Monitoring Ranges Across Seasons and Temperature Types",
       x     = NULL,
       y     = "Temperature (degC)"
     ) +
@@ -49,7 +48,7 @@ make_monitoring_threshold_plot <- function(thresholds_30, thresholds_10, save_pl
     eda_save_plot(
       p,
       "model_monitoring_threshold_ranges.jpg",
-      width  = 9,
+      width  = 8.5,
       height = 4
     )
   }

@@ -39,3 +39,6 @@ cr-model-shift-plot	make_model_shift_plot	model_results
 cr-model-trend-plot	make_model_trend_plot	model_results
 cr-eda-warming-rate-curve-plot	make_eda_warming_rate_curve_plot
 cr-monitoring-thresholds-table	make_monitoring_thresholds_comparison_table	monitoring_thresholds	monitoring_thresholds_10
+cr-monitoring-thresholds-plot	make_monitoring_threshold_plot	monitoring_thresholds	monitoring_thresholds_10
+monitoring-thresholds-plot	make_monitoring_threshold_plot	monitoring_thresholds	monitoring_thresholds_10
+appendix-management-plan-inline	
