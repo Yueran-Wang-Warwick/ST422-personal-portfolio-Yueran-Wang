@@ -86,8 +86,6 @@ ST422_Personal_Portfolio_Yueran_Wang/
 |-- .Rprofile
 |-- .Rproj.user/
 |-- ST422_Personal_Portfolio_Yueran_Wang.Rproj
-|-- consultancy_portfolio_workshop_template.md
-|-- Brief_6.png
 |-- .RData
 `-- .Rhistory
 ```
